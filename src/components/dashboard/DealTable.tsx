@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -61,33 +62,19 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
         );
       }
       
-      // Find signal with matching ID
-      let targetSignal = null;
-      if (actionReferenceId && signalData && signalData.signals) {
-        targetSignal = signalData.signals.find((signal: any) => {
-          // Check if this signal has an ID that matches the action_reference_id
-          if (signal.objection_analysis) {
-            return signal.objection_analysis.objection_type && 
-                  (signal.objection_analysis.objection_type.includes(actionReferenceId) || 
-                   signal.objection_analysis.objection_quote.includes(actionReferenceId));
-          } else if (signal.persona_misalignment) {
-            return signal.persona_misalignment.signal_type && 
-                  (signal.persona_misalignment.signal_type.includes(actionReferenceId) || 
-                   signal.persona_misalignment.supporting_quote.includes(actionReferenceId));
-          } else if (signal.churn_risk) {
-            return signal.churn_risk.signal_type && 
-                  (signal.churn_risk.signal_type.includes(actionReferenceId) || 
-                   signal.churn_risk.supporting_quote.includes(actionReferenceId));
-          }
-          return false;
+      // NEW: Find signal with highest confidence
+      let highestConfidenceSignal = null;
+      if (signalData && signalData.signals && Array.isArray(signalData.signals)) {
+        // Sort signals by confidence (descending)
+        const sortedSignals = [...signalData.signals].sort((a, b) => {
+          const confA = a.confidence || 0;
+          const confB = b.confidence || 0;
+          return confB - confA;
         });
         
-        // If can't find an exact match, try index matching (actionReferenceId - 1)
-        if (!targetSignal && typeof actionReferenceId === 'string') {
-          const index = Number(actionReferenceId) - 1;
-          if (!isNaN(index) && index >= 0 && index < signalData.signals.length) {
-            targetSignal = signalData.signals[index];
-          }
+        // Get the signal with highest confidence
+        if (sortedSignals.length > 0) {
+          highestConfidenceSignal = sortedSignals[0];
         }
       }
       
@@ -96,19 +83,24 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
       let confidence = null;
       let supportingQuote = null;
       
-      if (targetSignal) {
-        if (targetSignal.objection_analysis) {
-          signalType = targetSignal.objection_analysis.objection_type;
-          confidence = targetSignal.objection_analysis.confidence_in_resolution;
-          supportingQuote = targetSignal.objection_analysis.objection_quote;
-        } else if (targetSignal.persona_misalignment) {
-          signalType = targetSignal.persona_misalignment.signal_type;
-          confidence = targetSignal.persona_misalignment.confidence;
-          supportingQuote = targetSignal.persona_misalignment.supporting_quote;
-        } else if (targetSignal.churn_risk) {
-          signalType = targetSignal.churn_risk.signal_type;
-          confidence = targetSignal.churn_risk.confidence;
-          supportingQuote = targetSignal.churn_risk.supporting_quote;
+      if (highestConfidenceSignal) {
+        signalType = highestConfidenceSignal.signal_type;
+        confidence = highestConfidenceSignal.confidence;
+        supportingQuote = highestConfidenceSignal.supporting_quote;
+        
+        // If objection_analysis exists, use it for more detailed info
+        if (highestConfidenceSignal.objection_analysis) {
+          signalType = highestConfidenceSignal.objection_analysis.objection_type || signalType;
+          confidence = highestConfidenceSignal.objection_analysis.confidence_in_resolution || confidence;
+          supportingQuote = highestConfidenceSignal.objection_analysis.objection_quote || supportingQuote;
+        } else if (highestConfidenceSignal.persona_misalignment) {
+          signalType = highestConfidenceSignal.persona_misalignment.signal_type || signalType;
+          confidence = highestConfidenceSignal.persona_misalignment.confidence || confidence;
+          supportingQuote = highestConfidenceSignal.persona_misalignment.supporting_quote || supportingQuote;
+        } else if (highestConfidenceSignal.churn_risk) {
+          signalType = highestConfidenceSignal.churn_risk.signal_type || signalType;
+          confidence = highestConfidenceSignal.churn_risk.confidence || confidence;
+          supportingQuote = highestConfidenceSignal.churn_risk.supporting_quote || supportingQuote;
         }
       }
       
@@ -120,7 +112,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
           confidence: confidence,
           supporting_quote: supportingQuote
         },
-        priority: targetAction?.priority,
         rawData: {
           nba: nbaData,
           actions: actionsData,
@@ -133,7 +124,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
         nba: deal.nba,
         action: null,
         signal: null,
-        priority: null,
         rawData: {
           nba: deal.nba,
           actions: deal.actions,
@@ -150,6 +140,12 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
     let badgeColor = "bg-gray-500";
     let signalType = signal.signal_type || "";
     
+    // Extract the main signal type if it contains delimiters like ::
+    let displaySignalType = signalType;
+    if (signalType.includes("::")) {
+      displaySignalType = signalType.split("::")?.[1] || signalType;
+    }
+    
     if (signalType.toLowerCase().includes('integration')) {
       badgeColor = "bg-amber-500";
     } else if (signalType.toLowerCase().includes('persona') || signalType.toLowerCase().includes('mismatch')) {
@@ -160,21 +156,27 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
       badgeColor = "bg-red-500";
     } else if (signalType.toLowerCase().includes('pricing') || signalType.toLowerCase().includes('roi')) {
       badgeColor = "bg-violet-500";
+    } else if (signalType.toLowerCase().includes('confusion')) {
+      badgeColor = "bg-orange-500";
+    } else if (signalType.toLowerCase().includes('expansion')) {
+      badgeColor = "bg-green-600";
     }
     
     return (
       <HoverCard>
         <HoverCardTrigger asChild>
           <Badge className={`${badgeColor} cursor-pointer`}>
-            {signalType.split('::')?.[1] || signalType}
+            {displaySignalType}
           </Badge>
         </HoverCardTrigger>
         <HoverCardContent className="w-80 z-50">
           <div className="space-y-2">
             <h4 className="font-semibold">Signal Details</h4>
             <div className="grid grid-cols-[auto_1fr] gap-2">
+              <span className="font-medium">Type:</span>
+              <span>{signalType}</span>
               <span className="font-medium">Confidence:</span>
-              <span>{signal.confidence || "N/A"}</span>
+              <span>{signal.confidence || "N/A"}%</span>
               <span className="font-medium">Supporting Quote:</span>
               <p className="text-sm italic">"{signal.supporting_quote || "Not available"}"</p>
             </div>
@@ -184,39 +186,31 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
     );
   };
 
-  const getPriorityBadge = (priority: string | number) => {
-    if (!priority) return null;
+  // Format NBA text to make it more readable
+  const formatNBA = (nbaText: string) => {
+    if (!nbaText) return "No action available";
     
-    let badgeColor = "bg-gray-500";
-    let badgeText = priority;
-    
-    if (typeof priority === 'string') {
-      const lowerPriority = priority.toLowerCase();
+    try {
+      // If it's a JSON string, try to parse it
+      if (typeof nbaText === 'string' && (nbaText.startsWith('{') || nbaText.startsWith('['))) {
+        const parsed = JSON.parse(nbaText);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.nba_action && parsed.nba_action.action_summary) {
+            return parsed.nba_action.action_summary;
+          }
+        }
+      }
       
-      if (lowerPriority.includes('high') || lowerPriority === 'p1') {
-        badgeColor = "bg-red-500";
-        badgeText = "High";
-      } else if (lowerPriority.includes('medium') || lowerPriority === 'p2') {
-        badgeColor = "bg-amber-500";
-        badgeText = "Medium";
-      } else if (lowerPriority.includes('low') || lowerPriority === 'p3') {
-        badgeColor = "bg-green-500";
-        badgeText = "Low";
+      // If the text is longer than 150 characters, truncate it
+      if (nbaText.length > 150) {
+        return nbaText.substring(0, 147) + "...";
       }
-    } else if (typeof priority === 'number') {
-      if (priority === 1) {
-        badgeColor = "bg-red-500";
-        badgeText = "High";
-      } else if (priority === 2) {
-        badgeColor = "bg-amber-500";
-        badgeText = "Medium";
-      } else if (priority === 3) {
-        badgeColor = "bg-green-500";
-        badgeText = "Low";
-      }
+      
+      return nbaText;
+    } catch (e) {
+      console.error("Error formatting NBA:", e);
+      return nbaText;
     }
-    
-    return <Badge className={badgeColor}>{badgeText}</Badge>;
   };
   
   return (
@@ -229,14 +223,13 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
             <TableHead>Deal Stage</TableHead>
             <TableHead>Objections</TableHead>
             <TableHead>Next Best Action</TableHead>
-            <TableHead>Priority</TableHead>
             <TableHead className="text-right">Details</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {deals.length > 0 ? (
             deals.map((deal, index) => {
-              const { nba, signal, priority } = extractStructuredData(deal);
+              const { nba, signal } = extractStructuredData(deal);
               
               return (
                 <TableRow key={index}>
@@ -248,10 +241,9 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                   </TableCell>
                   <TableCell>
                     <div className="line-clamp-2 text-sm bg-slate-50 p-2 rounded-md">
-                      {nba}
+                      {formatNBA(nba)}
                     </div>
                   </TableCell>
-                  <TableCell>{getPriorityBadge(priority)}</TableCell>
                   <TableCell className="text-right">
                     <Button 
                       variant="outline" 
@@ -281,7 +273,7 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                                     <div className="space-y-2">
                                       <h3 className="text-lg font-semibold">Next Best Action</h3>
                                       <div className="bg-slate-50 p-4 rounded-md">
-                                        <p>{extracted.nba}</p>
+                                        <p>{formatNBA(extracted.nba)}</p>
                                       </div>
                                     </div>
                                   )}
@@ -313,12 +305,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                                             <span className="font-medium">Communication Style:</span> {extracted.action.communication_style}
                                           </div>
                                         )}
-                                        
-                                        {extracted.action.priority && (
-                                          <div>
-                                            <span className="font-medium">Priority:</span> {getPriorityBadge(extracted.action.priority)}
-                                          </div>
-                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -335,7 +321,7 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                                         
                                         {extracted.signal.confidence && (
                                           <div>
-                                            <span className="font-medium">Confidence:</span> {extracted.signal.confidence}
+                                            <span className="font-medium">Confidence:</span> {extracted.signal.confidence}%
                                           </div>
                                         )}
                                         
@@ -367,7 +353,7 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-8">
+              <TableCell colSpan={6} className="text-center py-8">
                 No deals found. Select an Account Executive or ensure data is loaded correctly.
               </TableCell>
             </TableRow>
@@ -379,3 +365,4 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
 };
 
 export default DealTable;
+
