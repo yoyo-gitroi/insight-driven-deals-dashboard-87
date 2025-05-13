@@ -2,11 +2,10 @@
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Eye } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface DealTableProps {
   deals: any[];
@@ -15,69 +14,104 @@ interface DealTableProps {
 const DealTable: React.FC<DealTableProps> = ({ deals }) => {
   const [openDrawerId, setOpenDrawerId] = React.useState<number | null>(null);
 
+  const extractStructuredData = (deal: any) => {
+    try {
+      // Parse data if they are strings
+      let nbaData = deal.nba;
+      let actionsData = deal.actions;
+      let signalData = deal.signals;
+      
+      if (typeof nbaData === 'string' && nbaData.trim().startsWith('{')) {
+        nbaData = JSON.parse(nbaData);
+      }
+      
+      if (typeof actionsData === 'string' && actionsData.trim().startsWith('[')) {
+        actionsData = JSON.parse(actionsData);
+      }
+      
+      if (typeof signalData === 'string' && signalData.trim().startsWith('[')) {
+        signalData = JSON.parse(signalData);
+      }
+      
+      // Find the action referenced in the NBA
+      const actionRefId = nbaData?.action_reference_id;
+      let targetAction = null;
+      let targetSignal = null;
+      
+      // Find the action with matching action_id
+      if (actionRefId && Array.isArray(actionsData)) {
+        targetAction = actionsData.find((action: any) => action.action_id === actionRefId);
+      }
+      
+      // Find the signal referenced by the action
+      if (targetAction?.signal_reference_id && Array.isArray(signalData)) {
+        targetSignal = signalData.find((signal: any) => signal.signal_id === targetAction.signal_reference_id);
+      }
+      
+      return {
+        nba: nbaData?.action_summary || deal.nba,
+        action: targetAction,
+        signal: targetSignal,
+        priority: targetAction?.priority,
+        rawData: {
+          nba: nbaData,
+          actions: actionsData,
+          signals: signalData
+        }
+      };
+    } catch (error) {
+      console.error("Error extracting structured data:", error);
+      return {
+        nba: deal.nba,
+        action: null,
+        signal: null,
+        priority: null,
+        rawData: {
+          nba: deal.nba,
+          actions: deal.actions,
+          signals: deal.signals
+        }
+      };
+    }
+  };
+
   const getSignalBadge = (signal: any) => {
     if (!signal) return null;
     
-    // Check if signal is a string (old format) or an object (new format)
-    if (typeof signal === 'string') {
-      const lowerSignal = signal.toLowerCase();
-      
-      if (lowerSignal.includes('integration')) {
-        return (
-          <Badge className="bg-amber-500">Integration</Badge>
-        );
-      } else if (lowerSignal.includes('onboarding') || lowerSignal.includes('confusion')) {
-        return (
-          <Badge className="bg-blue-500">Confusion: Onboarding</Badge>
-        );
-      } else if (lowerSignal.includes('expansion') || lowerSignal.includes('adoption')) {
-        return (
-          <Badge className="bg-emerald-500">Expansion: Org-Wide Adoption</Badge>
-        );
-      } else if (lowerSignal.includes('objection')) {
-        return (
-          <Badge className="bg-red-500">Objection</Badge>
-        );
-      } else {
-        return <Badge>{signal}</Badge>;
-      }
-    } else if (signal.signal_type) {
-      // New structured format
-      let badgeColor = "bg-gray-500";
-      
-      if (signal.signal_type.toLowerCase().includes('integration')) {
-        badgeColor = "bg-amber-500";
-      } else if (signal.signal_type.toLowerCase().includes('onboarding') || signal.signal_type.toLowerCase().includes('confusion')) {
-        badgeColor = "bg-blue-500";
-      } else if (signal.signal_type.toLowerCase().includes('expansion') || signal.signal_type.toLowerCase().includes('adoption')) {
-        badgeColor = "bg-emerald-500";
-      } else if (signal.signal_type.toLowerCase().includes('objection')) {
-        badgeColor = "bg-red-500";
-      }
-      
-      return (
-        <HoverCard>
-          <HoverCardTrigger asChild>
-            <Badge className={badgeColor + " cursor-pointer"}>
-              {signal.signal_type}
-            </Badge>
-          </HoverCardTrigger>
-          <HoverCardContent className="w-80">
-            <div className="space-y-2">
-              <h4 className="font-semibold">Signal Details</h4>
-              <div className="grid grid-cols-[auto_1fr] gap-2">
-                <span className="font-medium">Confidence:</span>
-                <span>{signal.confidence || "N/A"}</span>
-                <span className="font-medium">Supporting Quote:</span>
-                <p className="text-sm italic">"{signal.supporting_quote || "Not available"}"</p>
-              </div>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
-      );
+    // Determine badge color based on signal type
+    let badgeColor = "bg-gray-500";
+    let signalType = signal.signal_type || "";
+    
+    if (signalType.toLowerCase().includes('integration')) {
+      badgeColor = "bg-amber-500";
+    } else if (signalType.toLowerCase().includes('onboarding') || signalType.toLowerCase().includes('confusion')) {
+      badgeColor = "bg-blue-500";
+    } else if (signalType.toLowerCase().includes('expansion') || signalType.toLowerCase().includes('adoption')) {
+      badgeColor = "bg-emerald-500";
+    } else if (signalType.toLowerCase().includes('objection')) {
+      badgeColor = "bg-red-500";
     }
     
-    return null;
+    return (
+      <HoverCard>
+        <HoverCardTrigger asChild>
+          <Badge className={`${badgeColor} cursor-pointer`}>
+            {signalType}
+          </Badge>
+        </HoverCardTrigger>
+        <HoverCardContent className="w-80">
+          <div className="space-y-2">
+            <h4 className="font-semibold">Signal Details</h4>
+            <div className="grid grid-cols-[auto_1fr] gap-2">
+              <span className="font-medium">Confidence:</span>
+              <span>{signal.confidence || "N/A"}</span>
+              <span className="font-medium">Supporting Quote:</span>
+              <p className="text-sm italic">"{signal.supporting_quote || "Not available"}"</p>
+            </div>
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    );
   };
 
   const getPriorityBadge = (priority: string | number) => {
@@ -114,57 +148,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
     
     return <Badge className={badgeColor}>{badgeText}</Badge>;
   };
-
-  const extractStructuredData = (deal: any) => {
-    try {
-      // Try to parse NBA if it's a JSON string
-      let nbaData = deal.nba;
-      let actionsData = deal.actions;
-      let signalData = deal.signals;
-      
-      // Parse if these are strings containing JSON
-      if (typeof nbaData === 'string' && nbaData.trim().startsWith('{')) {
-        nbaData = JSON.parse(nbaData);
-      }
-      
-      if (typeof actionsData === 'string' && actionsData.trim().startsWith('[')) {
-        actionsData = JSON.parse(actionsData);
-      }
-      
-      if (typeof signalData === 'string' && signalData.trim().startsWith('[')) {
-        signalData = JSON.parse(signalData);
-      }
-      
-      // Find the action referenced in the NBA
-      const actionRefId = nbaData?.action_reference_id;
-      let targetAction = null;
-      let targetSignal = null;
-      
-      if (actionRefId && Array.isArray(actionsData)) {
-        targetAction = actionsData.find((action: any) => action.action_id === actionRefId);
-      }
-      
-      // Find the signal referenced by the action
-      if (targetAction?.signal_reference_id && Array.isArray(signalData)) {
-        targetSignal = signalData.find((signal: any) => signal.signal_id === targetAction.signal_reference_id);
-      }
-      
-      return {
-        nba: nbaData?.action_summary || deal.nba,
-        action: targetAction,
-        signal: targetSignal,
-        priority: targetAction?.priority,
-      };
-    } catch (error) {
-      console.error("Error extracting structured data:", error);
-      return {
-        nba: deal.nba,
-        action: null,
-        signal: null,
-        priority: null
-      };
-    }
-  };
   
   return (
     <div className="overflow-x-auto">
@@ -190,9 +173,13 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                   <TableCell className="font-medium">{deal.company_name}</TableCell>
                   <TableCell>{deal.deal_name}</TableCell>
                   <TableCell>{deal.deal_stage}</TableCell>
-                  <TableCell>{getSignalBadge(signal || deal.signals)}</TableCell>
                   <TableCell>
-                    <span className="line-clamp-2">{nba}</span>
+                    {signal && getSignalBadge(signal)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="line-clamp-2 text-sm bg-slate-50 p-2 rounded-md">
+                      {nba}
+                    </div>
                   </TableCell>
                   <TableCell>{getPriorityBadge(priority)}</TableCell>
                   <TableCell className="text-right">
@@ -214,17 +201,20 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                             <DrawerTitle className="text-xl">{deal.company_name}</DrawerTitle>
                             <DrawerDescription>{deal.deal_name} - {deal.deal_stage}</DrawerDescription>
                           </DrawerHeader>
+                          
                           <div className="p-6 space-y-6">
                             {(() => {
                               const extracted = extractStructuredData(deal);
                               return (
                                 <>
-                                  <div className="space-y-2">
-                                    <h3 className="text-lg font-semibold">Next Best Action</h3>
-                                    <div className="bg-slate-50 p-4 rounded-md">
-                                      <p>{extracted.nba}</p>
+                                  {extracted.nba && (
+                                    <div className="space-y-2">
+                                      <h3 className="text-lg font-semibold">Next Best Action</h3>
+                                      <div className="bg-slate-50 p-4 rounded-md">
+                                        <p>{extracted.nba}</p>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
                                   
                                   {extracted.action && (
                                     <div className="space-y-2">
@@ -294,6 +284,10 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                               );
                             })()}
                           </div>
+                          
+                          <DrawerFooter>
+                            <Button className="w-full bg-indigo-600 hover:bg-indigo-700">TAKE ACTION</Button>
+                          </DrawerFooter>
                         </div>
                       </DrawerContent>
                     </Drawer>
