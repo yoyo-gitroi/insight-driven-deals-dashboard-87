@@ -31,7 +31,7 @@ const Dashboard = () => {
   const [crmData, setCrmData] = useState<CRMData[]>([]);
   const [transcriptData, setTranscriptData] = useState<TranscriptData[]>([]);
   const [aeList, setAeList] = useState<string[]>([]);
-  const [selectedAE, setSelectedAE] = useState<string>("");
+  const [selectedAE, setSelectedAE] = useState<string>("all"); // Default to "all" instead of empty string
 
   const handleFileProcessed = (crmSheet: any[], transcriptSheet: any[]) => {
     if (crmSheet.length && transcriptSheet.length) {

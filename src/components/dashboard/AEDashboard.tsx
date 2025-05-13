@@ -90,7 +90,8 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
             <SelectValue placeholder="Select Account Executive" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Account Executives</SelectItem>
+            {/* Fix: Change the value from empty string to "all" */}
+            <SelectItem value="all">All Account Executives</SelectItem>
             {aeList.map((ae) => (
               <SelectItem key={ae} value={ae}>{ae}</SelectItem>
             ))}
