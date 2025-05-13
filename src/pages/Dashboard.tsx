@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import AEDashboard from "@/components/dashboard/AEDashboard";
 import FileUploader from "@/components/dashboard/FileUploader";
@@ -31,12 +31,22 @@ const Dashboard = () => {
   const [crmData, setCrmData] = useState<CRMData[]>([]);
   const [transcriptData, setTranscriptData] = useState<TranscriptData[]>([]);
   const [aeList, setAeList] = useState<string[]>([]);
-  const [selectedAE, setSelectedAE] = useState<string>("all"); // Default to "all" instead of empty string
+  const [selectedAE, setSelectedAE] = useState<string>("all");
 
   const handleFileProcessed = (crmSheet: any[], transcriptSheet: any[]) => {
     if (crmSheet.length && transcriptSheet.length) {
+      // Process the CRM sheet data
       setCrmData(crmSheet);
-      setTranscriptData(transcriptSheet);
+      
+      // Process the transcripts sheet - ensure JSON data is preserved as strings
+      const processedTranscriptData = transcriptSheet.map(row => ({
+        ...row,
+        signals: typeof row.signals === 'string' ? row.signals : JSON.stringify(row.signals),
+        actions: typeof row.actions === 'string' ? row.actions : JSON.stringify(row.actions),
+        nba: typeof row.nba === 'string' ? row.nba : JSON.stringify(row.nba)
+      }));
+      
+      setTranscriptData(processedTranscriptData);
       
       // Extract unique AE list from owner field
       const uniqueAEs = [...new Set(crmSheet.map(row => row.owner))].filter(Boolean);
@@ -81,3 +91,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

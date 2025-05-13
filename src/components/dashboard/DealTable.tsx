@@ -21,37 +21,91 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
       let actionsData = deal.actions;
       let signalData = deal.signals;
       
-      if (typeof nbaData === 'string' && nbaData.trim().startsWith('{')) {
-        nbaData = JSON.parse(nbaData);
+      if (typeof nbaData === 'string' && nbaData.trim()) {
+        try {
+          nbaData = JSON.parse(nbaData);
+        } catch (e) {
+          console.error("Error parsing NBA JSON:", e);
+        }
       }
       
-      if (typeof actionsData === 'string' && actionsData.trim().startsWith('[')) {
-        actionsData = JSON.parse(actionsData);
+      if (typeof actionsData === 'string' && actionsData.trim()) {
+        try {
+          actionsData = JSON.parse(actionsData);
+        } catch (e) {
+          console.error("Error parsing actions JSON:", e);
+        }
       }
       
-      if (typeof signalData === 'string' && signalData.trim().startsWith('[')) {
-        signalData = JSON.parse(signalData);
+      if (typeof signalData === 'string' && signalData.trim()) {
+        try {
+          signalData = JSON.parse(signalData);
+        } catch (e) {
+          console.error("Error parsing signals JSON:", e);
+        }
       }
       
       // Find the action referenced in the NBA
-      const actionRefId = nbaData?.action_reference_id;
+      let actionReferenceId = null;
+      let actionSummary = null;
+      
+      // Extract action_reference_id from NBA
+      if (nbaData && nbaData.nba_action && nbaData.nba_action.action_reference_id) {
+        actionReferenceId = nbaData.nba_action.action_reference_id;
+        actionSummary = nbaData.nba_action.action_summary;
+      }
+      
+      // Find the action with matching action_id
       let targetAction = null;
       let targetSignal = null;
       
-      // Find the action with matching action_id
-      if (actionRefId && Array.isArray(actionsData)) {
-        targetAction = actionsData.find((action: any) => action.action_id === actionRefId);
+      if (actionReferenceId && actionsData && actionsData.actions) {
+        targetAction = actionsData.actions.find(
+          (action: any) => action.signal_reference_id === actionReferenceId
+        );
       }
       
-      // Find the signal referenced by the action
-      if (targetAction?.signal_reference_id && Array.isArray(signalData)) {
-        targetSignal = signalData.find((signal: any) => signal.signal_id === targetAction.signal_reference_id);
+      // Find the signal corresponding to the action
+      if (actionReferenceId && signalData && signalData.signals) {
+        // Find signal by index (actionReferenceId - 1) or by matching signal_id if available
+        targetSignal = signalData.signals[Number(actionReferenceId) - 1];
+        
+        // Get signal type and supporting data
+        if (targetSignal) {
+          const signalType = targetSignal.objection_analysis?.objection_type || 
+                           targetSignal.persona_misalignment?.signal_type || 
+                           targetSignal.churn_risk?.signal_type;
+                           
+          const confidence = targetSignal.objection_analysis?.confidence_in_resolution || 
+                           targetSignal.persona_misalignment?.confidence || 
+                           targetSignal.churn_risk?.confidence;
+                           
+          const supportingQuote = targetSignal.objection_analysis?.objection_quote || 
+                               targetSignal.persona_misalignment?.supporting_quote || 
+                               targetSignal.churn_risk?.supporting_quote;
+                               
+          return {
+            nba: actionSummary,
+            action: targetAction,
+            signal: {
+              signal_type: signalType,
+              confidence: confidence,
+              supporting_quote: supportingQuote
+            },
+            priority: targetAction?.priority,
+            rawData: {
+              nba: nbaData,
+              actions: actionsData,
+              signals: signalData
+            }
+          };
+        }
       }
       
       return {
-        nba: nbaData?.action_summary || deal.nba,
+        nba: actionSummary || deal.nba,
         action: targetAction,
-        signal: targetSignal,
+        signal: null,
         priority: targetAction?.priority,
         rawData: {
           nba: nbaData,
@@ -76,7 +130,7 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
   };
 
   const getSignalBadge = (signal: any) => {
-    if (!signal) return null;
+    if (!signal || !signal.signal_type) return null;
     
     // Determine badge color based on signal type
     let badgeColor = "bg-gray-500";
@@ -84,22 +138,24 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
     
     if (signalType.toLowerCase().includes('integration')) {
       badgeColor = "bg-amber-500";
-    } else if (signalType.toLowerCase().includes('onboarding') || signalType.toLowerCase().includes('confusion')) {
+    } else if (signalType.toLowerCase().includes('persona') || signalType.toLowerCase().includes('mismatch')) {
       badgeColor = "bg-blue-500";
-    } else if (signalType.toLowerCase().includes('expansion') || signalType.toLowerCase().includes('adoption')) {
+    } else if (signalType.toLowerCase().includes('product') || signalType.toLowerCase().includes('fit')) {
       badgeColor = "bg-emerald-500";
-    } else if (signalType.toLowerCase().includes('objection')) {
+    } else if (signalType.toLowerCase().includes('objection') || signalType.toLowerCase().includes('churn')) {
       badgeColor = "bg-red-500";
+    } else if (signalType.toLowerCase().includes('pricing') || signalType.toLowerCase().includes('roi')) {
+      badgeColor = "bg-violet-500";
     }
     
     return (
       <HoverCard>
         <HoverCardTrigger asChild>
           <Badge className={`${badgeColor} cursor-pointer`}>
-            {signalType}
+            {signalType.split('::')?.[1] || signalType}
           </Badge>
         </HoverCardTrigger>
-        <HoverCardContent className="w-80">
+        <HoverCardContent className="w-80 z-50">
           <div className="space-y-2">
             <h4 className="font-semibold">Signal Details</h4>
             <div className="grid grid-cols-[auto_1fr] gap-2">
@@ -309,3 +365,4 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
 };
 
 export default DealTable;
+
