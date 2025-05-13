@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface AEDashboardProps {
   crmData: any[];
-  transcriptData: any[];
   aeList: string[];
   selectedAE: string;
   setSelectedAE: (ae: string) => void;
@@ -16,7 +15,6 @@ interface AEDashboardProps {
 
 const AEDashboard: React.FC<AEDashboardProps> = ({ 
   crmData, 
-  transcriptData, 
   aeList, 
   selectedAE, 
   setSelectedAE 
@@ -46,21 +44,6 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
     });
     setDealsByStage(stageCount);
   }, [selectedAE, crmData]);
-
-  // Combine CRM and transcript data based on sr_no
-  const getEnrichedDeals = () => {
-    return filteredDeals.map(deal => {
-      const transcript = transcriptData.find(t => t.sr_no === deal.sr_no) || {};
-      return {
-        ...deal,
-        signals: transcript.signals || '',
-        nba: transcript.nba || '',
-        actions: transcript.actions || ''
-      };
-    });
-  };
-
-  const enrichedDeals = getEnrichedDeals();
 
   return (
     <div className="space-y-6">
@@ -129,7 +112,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
           <CardTitle>Playbook View</CardTitle>
         </CardHeader>
         <CardContent>
-          <DealTable deals={enrichedDeals} />
+          <DealTable deals={filteredDeals} />
         </CardContent>
       </Card>
     </div>

@@ -2,9 +2,10 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
+import { toast } from "@/hooks/use-toast";
 
 interface FileUploaderProps {
-  onFileProcessed: (crmData: any[], transcriptData: any[]) => void;
+  onFileProcessed: (crmData: any[]) => void;
 }
 
 const FileUploader: React.FC<FileUploaderProps> = ({ onFileProcessed }) => {
@@ -20,18 +21,15 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileProcessed }) => {
         const data = e.target?.result;
         const workbook = XLSX.read(data, { type: "binary" });
         
-        // Assuming the first sheet is "CRM Data" and the second sheet is "Sheet1" (transcripts)
-        const crmSheetName = workbook.SheetNames.find(name => 
-          name.toLowerCase().includes("crm")) || workbook.SheetNames[0];
-        const transcriptSheetName = workbook.SheetNames.find(name => 
-          name.toLowerCase().includes("sheet1")) || workbook.SheetNames[1];
+        // Just get the first sheet (CRM Data)
+        const sheetName = workbook.SheetNames[0];
         
-        if (!crmSheetName || !transcriptSheetName) {
-          throw new Error("Required sheets not found in Excel file");
+        if (!sheetName) {
+          throw new Error("No sheet found in Excel file");
         }
         
         // Process CRM data
-        const crmSheet = XLSX.utils.sheet_to_json(workbook.Sheets[crmSheetName], {
+        const crmSheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
           header: "A",
           raw: false
         });
@@ -51,32 +49,20 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileProcessed }) => {
           return processedRow;
         });
         
-        // Process transcript data
-        const transcriptSheet = XLSX.utils.sheet_to_json(workbook.Sheets[transcriptSheetName], {
-          header: "A",
-          raw: false
-        });
-        
-        // Convert header row to lowercase and replace spaces with underscores
-        const transcriptData = transcriptSheet.slice(1).map((row: any) => {
-          const processedRow: { [key: string]: any } = {};
-          Object.keys(row).forEach(key => {
-            const headerKey = (transcriptSheet[0][key] || "")
-              .toLowerCase()
-              .replace(/\s+/g, "_")
-              .replace(/[^a-z0-9_]/g, "");
-            if (headerKey) {
-              processedRow[headerKey] = row[key];
-            }
-          });
-          return processedRow;
-        });
-        
-        onFileProcessed(crmData, transcriptData);
+        onFileProcessed(crmData);
         setIsLoading(false);
+        toast({
+          title: "File uploaded successfully",
+          description: `Processed ${crmData.length} rows of data`
+        });
       } catch (error) {
         console.error("Error processing file:", error);
         setIsLoading(false);
+        toast({
+          title: "Error processing file",
+          description: "Please check your file format and try again",
+          variant: "destructive"
+        });
       }
     };
     
@@ -119,7 +105,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileProcessed }) => {
           <span className="font-semibold">Click to upload</span> or drag and drop
         </p>
         <p className="text-xs text-gray-500">
-          Excel file with CRM and Transcript data (.xlsx)
+          Excel file with all data in a single sheet (.xlsx)
         </p>
       </label>
       

@@ -14,49 +14,35 @@ type CRMData = {
   deal_amount: number;
   owner: string;
   close_date: string;
-};
-
-type TranscriptData = {
-  sr_no: number;
-  transcripts: string;
-  company_name: string;
-  agenda: string;
+  nba: string;
   signals: string;
   actions: string;
-  nba: string;
+  transcripts: string;
 };
 
 const Dashboard = () => {
   const [fileUploaded, setFileUploaded] = useState(false);
   const [crmData, setCrmData] = useState<CRMData[]>([]);
-  const [transcriptData, setTranscriptData] = useState<TranscriptData[]>([]);
   const [aeList, setAeList] = useState<string[]>([]);
   const [selectedAE, setSelectedAE] = useState<string>("all");
 
-  const handleFileProcessed = (crmSheet: any[], transcriptSheet: any[]) => {
-    if (crmSheet.length && transcriptSheet.length) {
-      // Process the CRM sheet data
-      setCrmData(crmSheet);
-      
-      // Process the transcripts sheet - ensure JSON data is preserved as strings
-      const processedTranscriptData = transcriptSheet.map(row => ({
+  const handleFileProcessed = (crmSheet: any[]) => {
+    if (crmSheet.length) {
+      // Ensure JSON data is preserved as strings
+      const processedCrmData = crmSheet.map(row => ({
         ...row,
         signals: typeof row.signals === 'string' ? row.signals : JSON.stringify(row.signals),
         actions: typeof row.actions === 'string' ? row.actions : JSON.stringify(row.actions),
         nba: typeof row.nba === 'string' ? row.nba : JSON.stringify(row.nba)
       }));
       
-      setTranscriptData(processedTranscriptData);
+      setCrmData(processedCrmData);
       
       // Extract unique AE list from owner field
       const uniqueAEs = [...new Set(crmSheet.map(row => row.owner))].filter(Boolean);
       setAeList(uniqueAEs);
       
       setFileUploaded(true);
-      toast({
-        title: "File uploaded successfully",
-        description: "Your data has been loaded into the dashboard"
-      });
     } else {
       toast({
         title: "Error processing file",
@@ -80,7 +66,6 @@ const Dashboard = () => {
       ) : (
         <AEDashboard 
           crmData={crmData}
-          transcriptData={transcriptData}
           aeList={aeList}
           selectedAE={selectedAE}
           setSelectedAE={setSelectedAE}
@@ -91,4 +76,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -45,67 +44,82 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
         }
       }
       
-      // Find the action referenced in the NBA
-      let actionReferenceId = null;
+      // Extract action_summary from NBA
       let actionSummary = null;
+      let actionReferenceId = null;
       
-      // Extract action_reference_id from NBA
-      if (nbaData && nbaData.nba_action && nbaData.nba_action.action_reference_id) {
-        actionReferenceId = nbaData.nba_action.action_reference_id;
+      if (nbaData && nbaData.nba_action) {
         actionSummary = nbaData.nba_action.action_summary;
+        actionReferenceId = nbaData.nba_action.action_reference_id;
       }
       
-      // Find the action with matching action_id
+      // Find action with matching reference ID
       let targetAction = null;
-      let targetSignal = null;
-      
       if (actionReferenceId && actionsData && actionsData.actions) {
         targetAction = actionsData.actions.find(
           (action: any) => action.signal_reference_id === actionReferenceId
         );
       }
       
-      // Find the signal corresponding to the action
+      // Find signal with matching ID
+      let targetSignal = null;
       if (actionReferenceId && signalData && signalData.signals) {
-        // Find signal by index (actionReferenceId - 1) or by matching signal_id if available
-        targetSignal = signalData.signals[Number(actionReferenceId) - 1];
+        targetSignal = signalData.signals.find((signal: any) => {
+          // Check if this signal has an ID that matches the action_reference_id
+          if (signal.objection_analysis) {
+            return signal.objection_analysis.objection_type && 
+                  (signal.objection_analysis.objection_type.includes(actionReferenceId) || 
+                   signal.objection_analysis.objection_quote.includes(actionReferenceId));
+          } else if (signal.persona_misalignment) {
+            return signal.persona_misalignment.signal_type && 
+                  (signal.persona_misalignment.signal_type.includes(actionReferenceId) || 
+                   signal.persona_misalignment.supporting_quote.includes(actionReferenceId));
+          } else if (signal.churn_risk) {
+            return signal.churn_risk.signal_type && 
+                  (signal.churn_risk.signal_type.includes(actionReferenceId) || 
+                   signal.churn_risk.supporting_quote.includes(actionReferenceId));
+          }
+          return false;
+        });
         
-        // Get signal type and supporting data
-        if (targetSignal) {
-          const signalType = targetSignal.objection_analysis?.objection_type || 
-                           targetSignal.persona_misalignment?.signal_type || 
-                           targetSignal.churn_risk?.signal_type;
-                           
-          const confidence = targetSignal.objection_analysis?.confidence_in_resolution || 
-                           targetSignal.persona_misalignment?.confidence || 
-                           targetSignal.churn_risk?.confidence;
-                           
-          const supportingQuote = targetSignal.objection_analysis?.objection_quote || 
-                               targetSignal.persona_misalignment?.supporting_quote || 
-                               targetSignal.churn_risk?.supporting_quote;
-                               
-          return {
-            nba: actionSummary,
-            action: targetAction,
-            signal: {
-              signal_type: signalType,
-              confidence: confidence,
-              supporting_quote: supportingQuote
-            },
-            priority: targetAction?.priority,
-            rawData: {
-              nba: nbaData,
-              actions: actionsData,
-              signals: signalData
-            }
-          };
+        // If can't find an exact match, try index matching (actionReferenceId - 1)
+        if (!targetSignal && typeof actionReferenceId === 'string') {
+          const index = Number(actionReferenceId) - 1;
+          if (!isNaN(index) && index >= 0 && index < signalData.signals.length) {
+            targetSignal = signalData.signals[index];
+          }
+        }
+      }
+      
+      // Get signal information
+      let signalType = null;
+      let confidence = null;
+      let supportingQuote = null;
+      
+      if (targetSignal) {
+        if (targetSignal.objection_analysis) {
+          signalType = targetSignal.objection_analysis.objection_type;
+          confidence = targetSignal.objection_analysis.confidence_in_resolution;
+          supportingQuote = targetSignal.objection_analysis.objection_quote;
+        } else if (targetSignal.persona_misalignment) {
+          signalType = targetSignal.persona_misalignment.signal_type;
+          confidence = targetSignal.persona_misalignment.confidence;
+          supportingQuote = targetSignal.persona_misalignment.supporting_quote;
+        } else if (targetSignal.churn_risk) {
+          signalType = targetSignal.churn_risk.signal_type;
+          confidence = targetSignal.churn_risk.confidence;
+          supportingQuote = targetSignal.churn_risk.supporting_quote;
         }
       }
       
       return {
-        nba: actionSummary || deal.nba,
+        nba: actionSummary || (typeof nbaData === 'string' ? nbaData : JSON.stringify(nbaData)),
         action: targetAction,
-        signal: null,
+        signal: {
+          signal_type: signalType,
+          confidence: confidence,
+          supporting_quote: supportingQuote
+        },
         priority: targetAction?.priority,
         rawData: {
           nba: nbaData,
@@ -365,4 +379,3 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
 };
 
 export default DealTable;
-
