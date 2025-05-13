@@ -27,10 +27,10 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
   const [tabView, setTabView] = useState("ae");
 
   useEffect(() => {
-    // Filter CRM data by selected AE or show all if none selected
-    const deals = selectedAE 
-      ? crmData.filter(deal => deal.owner === selectedAE)
-      : crmData;
+    // Fixed filter logic: show all deals when selectedAE is "all"
+    const deals = selectedAE === "all" 
+      ? crmData
+      : crmData.filter(deal => deal.owner === selectedAE);
     
     setFilteredDeals(deals);
     
@@ -90,7 +90,6 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
             <SelectValue placeholder="Select Account Executive" />
           </SelectTrigger>
           <SelectContent>
-            {/* Fix: Change the value from empty string to "all" */}
             <SelectItem value="all">All Account Executives</SelectItem>
             {aeList.map((ae) => (
               <SelectItem key={ae} value={ae}>{ae}</SelectItem>
