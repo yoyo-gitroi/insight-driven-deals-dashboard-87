@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { safeJsonParse } from "@/lib/utils";
+import ManagerDashboard from "@/components/dashboard/manager/ManagerDashboard";
 
 interface AEDashboardProps {
   crmData: any[];
@@ -28,6 +29,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
   const [aePerformanceData, setAePerformanceData] = useState<any[]>([]);
   const [priorityDealsCount, setPriorityDealsCount] = useState(0);
   const [dashboardTab, setDashboardTab] = useState("playbook");
+  const [priorityDeals, setPriorityDeals] = useState<any[]>([]);
 
   useEffect(() => {
     // Fixed filter logic: show all deals when selectedAE is "all"
@@ -49,13 +51,44 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
     });
     setDealsByStage(stageCount);
 
-    // Count priority deals (this is a simplified example - define priority as needed)
-    const priorityCount = crmData.filter(deal => 
-      deal.nba && (typeof deal.nba === 'string' ? 
-        deal.nba.toLowerCase().includes('priority') : 
-        JSON.stringify(deal.nba).toLowerCase().includes('priority'))
-    ).length;
-    setPriorityDealsCount(priorityCount);
+    // Find high priority deals based on NBA action_reference_id and actions priority
+    const highPriorityDeals = crmData.filter(deal => {
+      try {
+        // Parse the NBA data to get action_reference_id
+        const nbaData = safeJsonParse(deal.nba, {});
+        const actionReferenceId = nbaData?.nba_action?.action_reference_id;
+        
+        // If no action reference ID, this deal can't be prioritized
+        if (!actionReferenceId) return false;
+        
+        // Parse actions data to find matching action with high priority
+        const actionsData = safeJsonParse(deal.actions, {});
+        
+        // Check if actions is an array directly
+        if (Array.isArray(actionsData)) {
+          return actionsData.some(action => 
+            action.signal_reference_id === actionReferenceId && 
+            action.priority?.toLowerCase() === 'high'
+          );
+        }
+        
+        // Check if actions has an actions array inside it (more common structure)
+        if (actionsData?.actions && Array.isArray(actionsData.actions)) {
+          return actionsData.actions.some(action => 
+            action.signal_reference_id === actionReferenceId && 
+            action.priority?.toLowerCase() === 'high'
+          );
+        }
+        
+        return false;
+      } catch (error) {
+        console.error("Error processing priority deal:", error);
+        return false;
+      }
+    });
+    
+    setPriorityDeals(highPriorityDeals);
+    setPriorityDealsCount(highPriorityDeals.length);
 
     // Generate AE performance data for the CRO view
     if (tabView === "manager") {
@@ -359,159 +392,12 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
       )}
       
       {tabView === "manager" && (
-        <>
-          {/* CRO Dashboard Content */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card className="bg-gradient-to-br from-purple-50 to-white">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-purple-800">
-                  Total Deals
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-purple-900">{crmData.length}</div>
-                <p className="text-xs text-purple-600 mt-1">Across all account executives</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-to-br from-blue-50 to-white">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-blue-800">
-                  Active AEs
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-900">{aeList.length}</div>
-                <p className="text-xs text-blue-600 mt-1">Team members with assigned deals</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-to-br from-amber-50 to-white">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-amber-800">
-                  Priority Deals
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-amber-900">{priorityDealsCount}</div>
-                <p className="text-xs text-amber-600 mt-1">Requiring immediate attention</p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="space-y-6">
-            {/* Insight 1: AE vs Objection Resolution */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Objection Resolution Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="w-[180px]">Account Executive</TableHead>
-                        <TableHead className="text-right">Resolved</TableHead>
-                        <TableHead className="text-right">Partially Resolved</TableHead>
-                        <TableHead className="text-right">Total Objections</TableHead>
-                        <TableHead className="text-right">Resolution Rate</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {aePerformanceData.map((ae) => (
-                        <TableRow key={ae.name} className="hover:bg-muted/30">
-                          <TableCell className="font-medium">{ae.name}</TableCell>
-                          <TableCell className="text-right">{ae.resolvedObjections}</TableCell>
-                          <TableCell className="text-right">{ae.partiallyResolvedObjections}</TableCell>
-                          <TableCell className="text-right">{ae.totalObjections}</TableCell>
-                          <TableCell className="text-right">
-                            <Badge 
-                              variant={Number(ae.objectionResolutionRate) > 70 ? "default" : 
-                                     Number(ae.objectionResolutionRate) > 40 ? "outline" : "destructive"}
-                            >
-                              {ae.objectionResolutionRate}%
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Insight 2: AE vs Deal Stages */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Deal Stage Distribution by AE</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="w-[180px]">Account Executive</TableHead>
-                        <TableHead className="text-right">Total Deals</TableHead>
-                        <TableHead className="text-right">Discovery</TableHead>
-                        <TableHead className="text-right">Qualification</TableHead>
-                        <TableHead className="text-right">Implementation</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {aePerformanceData.map((ae) => (
-                        <TableRow key={`stage-${ae.name}`} className="hover:bg-muted/30">
-                          <TableCell className="font-medium">{ae.name}</TableCell>
-                          <TableCell className="text-right font-semibold">{ae.totalDeals}</TableCell>
-                          <TableCell className="text-right">{ae.discoveryCount}</TableCell>
-                          <TableCell className="text-right">{ae.qualificationCount}</TableCell>
-                          <TableCell className="text-right">{ae.implementationCount}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Insight 3: Upsell Performance */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Upsell Performance by AE</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="w-[180px]">Account Executive</TableHead>
-                        <TableHead className="text-right">Upsell Opportunities</TableHead>
-                        <TableHead className="text-right">Successful Upsells</TableHead>
-                        <TableHead className="text-right">Success Rate</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {aePerformanceData.map((ae) => (
-                        <TableRow key={`upsell-${ae.name}`} className="hover:bg-muted/30">
-                          <TableCell className="font-medium">{ae.name}</TableCell>
-                          <TableCell className="text-right">{ae.upsellOpportunities}</TableCell>
-                          <TableCell className="text-right">{ae.successfulUpsells}</TableCell>
-                          <TableCell className="text-right">
-                            <Badge 
-                              variant={Number(ae.upsellSuccessRate) > 70 ? "default" : 
-                                     Number(ae.upsellSuccessRate) > 40 ? "outline" : "destructive"}
-                            >
-                              {ae.upsellSuccessRate}%
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </>
+        <ManagerDashboard 
+          crmData={crmData}
+          aeList={aeList}
+          aePerformanceData={aePerformanceData}
+          priorityDeals={priorityDeals}
+        />
       )}
     </div>
   );
