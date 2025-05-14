@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -311,7 +310,7 @@ const StrategicSignals: React.FC<StrategicSignalsProps> = ({ data }) => {
                 <Treemap
                   data={objectionTreemapData}
                   dataKey="children"
-                  ratio={4/3}
+                  aspectRatio={4/3}
                   stroke="#fff"
                   content={<CustomizedTreemapContent />}
                 >
