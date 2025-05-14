@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DealTable from "@/components/dashboard/DealTable";
+import AEInsights from "@/components/dashboard/AEInsights";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,6 +27,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
   const [tabView, setTabView] = useState("ae");
   const [aePerformanceData, setAePerformanceData] = useState<any[]>([]);
   const [priorityDealsCount, setPriorityDealsCount] = useState(0);
+  const [dashboardTab, setDashboardTab] = useState("playbook");
 
   useEffect(() => {
     // Fixed filter logic: show all deals when selectedAE is "all"
@@ -251,14 +253,35 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
             ))}
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Playbook View</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DealTable deals={filteredDeals} />
-            </CardContent>
-          </Card>
+          {/* Tabs for switching between Playbook and Insights views */}
+          <Tabs value={dashboardTab} onValueChange={setDashboardTab}>
+            <TabsList>
+              <TabsTrigger value="playbook">Playbook View</TabsTrigger>
+              <TabsTrigger value="insights">Insights View</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="playbook">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Playbook View</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DealTable deals={filteredDeals} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="insights">
+              <Card>
+                <CardContent className="pt-6">
+                  <AEInsights 
+                    crmData={filteredDeals}
+                    selectedAE={selectedAE}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </>
       )}
       
