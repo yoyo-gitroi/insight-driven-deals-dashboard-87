@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -30,32 +29,38 @@ export function extractResolutionStatus(signals: any[]) {
     try {
       const parsedSignals = safeJsonParse(signal.signals, []);
       
-      if (Array.isArray(parsedSignals)) {
+      // Check if it's an object with a 'signals' array inside
+      if (parsedSignals?.signals && Array.isArray(parsedSignals.signals)) {
+        // Handle case where signals is an array inside 'signals' property
+        parsedSignals.signals.forEach((s: any) => {
+          if (s?.objection_analysis?.resolution_status) {
+            const status = s.objection_analysis.resolution_status.toLowerCase();
+            updateResolutionCounts(resolutionCounts, status);
+          }
+        });
+      } 
+      // Check if it's a direct array of signals
+      else if (Array.isArray(parsedSignals)) {
         parsedSignals.forEach((s: any) => {
           if (s?.objection_analysis?.resolution_status) {
             const status = s.objection_analysis.resolution_status.toLowerCase();
-            if (status.includes('resolved')) {
-              resolutionCounts.resolved++;
-            } else if (status.includes('partially')) {
-              resolutionCounts.partiallyResolved++;
-            } else if (status.includes('progress')) {
-              resolutionCounts.inProgress++;
-            } else {
-              resolutionCounts.notResolved++;
-            }
+            updateResolutionCounts(resolutionCounts, status);
           }
         });
-      } else if (parsedSignals?.objection_analysis?.resolution_status) {
+      } 
+      // Check if it's an object with 'objection_analysis' array
+      else if (parsedSignals?.objection_analysis && Array.isArray(parsedSignals.objection_analysis)) {
+        parsedSignals.objection_analysis.forEach((obj: any) => {
+          if (obj?.resolution_status) {
+            const status = obj.resolution_status.toLowerCase();
+            updateResolutionCounts(resolutionCounts, status);
+          }
+        });
+      }
+      // Direct single objection with resolution_status
+      else if (parsedSignals?.objection_analysis?.resolution_status) {
         const status = parsedSignals.objection_analysis.resolution_status.toLowerCase();
-        if (status.includes('resolved')) {
-          resolutionCounts.resolved++;
-        } else if (status.includes('partially')) {
-          resolutionCounts.partiallyResolved++;
-        } else if (status.includes('progress')) {
-          resolutionCounts.inProgress++;
-        } else {
-          resolutionCounts.notResolved++;
-        }
+        updateResolutionCounts(resolutionCounts, status);
       }
     } catch (e) {
       console.error("Error processing signal data:", e);
@@ -63,6 +68,19 @@ export function extractResolutionStatus(signals: any[]) {
   });
 
   return resolutionCounts;
+}
+
+// Helper function to update resolution counts based on status
+function updateResolutionCounts(counts: any, status: string) {
+  if (status.includes('resolved') && !status.includes('partially')) {
+    counts.resolved++;
+  } else if (status.includes('partially')) {
+    counts.partiallyResolved++;
+  } else if (status.includes('progress')) {
+    counts.inProgress++;
+  } else {
+    counts.notResolved++;
+  }
 }
 
 // Helper function to extract upsell opportunities from signals
@@ -78,30 +96,28 @@ export function extractUpsellOpportunities(signals: any[]) {
     try {
       const parsedSignals = safeJsonParse(signal.signals, []);
       
-      if (Array.isArray(parsedSignals)) {
+      // Check if it's an object with a 'signals' array inside
+      if (parsedSignals?.signals && Array.isArray(parsedSignals.signals)) {
+        parsedSignals.signals.forEach((s: any) => {
+          if (s?.customer_receptiveness) {
+            upsellCounts.total++;
+            updateReceptivenessCounts(upsellCounts, s.customer_receptiveness);
+          }
+        });
+      }
+      // Check if it's a direct array of signals
+      else if (Array.isArray(parsedSignals)) {
         parsedSignals.forEach((s: any) => {
           if (s?.customer_receptiveness) {
             upsellCounts.total++;
-            const receptiveness = s.customer_receptiveness.toLowerCase();
-            if (receptiveness.includes('high')) {
-              upsellCounts.high++;
-            } else if (receptiveness.includes('medium')) {
-              upsellCounts.medium++;
-            } else if (receptiveness.includes('low')) {
-              upsellCounts.low++;
-            }
+            updateReceptivenessCounts(upsellCounts, s.customer_receptiveness);
           }
         });
-      } else if (parsedSignals?.customer_receptiveness) {
+      }
+      // Direct single signal with customer_receptiveness
+      else if (parsedSignals?.customer_receptiveness) {
         upsellCounts.total++;
-        const receptiveness = parsedSignals.customer_receptiveness.toLowerCase();
-        if (receptiveness.includes('high')) {
-          upsellCounts.high++;
-        } else if (receptiveness.includes('medium')) {
-          upsellCounts.medium++;
-        } else if (receptiveness.includes('low')) {
-          upsellCounts.low++;
-        }
+        updateReceptivenessCounts(upsellCounts, parsedSignals.customer_receptiveness);
       }
     } catch (e) {
       console.error("Error processing upsell data:", e);
@@ -109,6 +125,18 @@ export function extractUpsellOpportunities(signals: any[]) {
   });
 
   return upsellCounts;
+}
+
+// Helper function to update receptiveness counts based on level
+function updateReceptivenessCounts(counts: any, receptiveness: string) {
+  const level = receptiveness.toLowerCase();
+  if (level.includes('high')) {
+    counts.high++;
+  } else if (level.includes('medium')) {
+    counts.medium++;
+  } else if (level.includes('low')) {
+    counts.low++;
+  }
 }
 
 // Helper to extract priority actions
@@ -119,8 +147,41 @@ export function extractPriorityActions(deals: any[]) {
   deals.forEach(deal => {
     try {
       const actions = safeJsonParse(deal.actions, []);
+      const nbaData = safeJsonParse(deal.nba, {});
       
-      if (Array.isArray(actions)) {
+      // Extract reference ID from NBA if available
+      let actionReferenceId = null;
+      if (nbaData?.nba_action?.action_reference_id) {
+        actionReferenceId = nbaData.nba_action.action_reference_id;
+      }
+      
+      // Check for actions array inside 'actions' property
+      if (actions?.actions && Array.isArray(actions.actions)) {
+        actions.actions.forEach((action: any) => {
+          // If we have a reference ID, check if this action matches it
+          if (actionReferenceId && action?.signal_reference_id === actionReferenceId) {
+            if (action?.priority) {
+              const priority = action.priority.toLowerCase();
+              if (priority.includes('high')) {
+                highPriorityCount++;
+              } else if (priority.includes('medium')) {
+                mediumPriorityCount++;
+              }
+            }
+          } 
+          // Otherwise check all actions
+          else if (action?.priority) {
+            const priority = action.priority.toLowerCase();
+            if (priority.includes('high')) {
+              highPriorityCount++;
+            } else if (priority.includes('medium')) {
+              mediumPriorityCount++;
+            }
+          }
+        });
+      }
+      // Check if it's a direct array of actions
+      else if (Array.isArray(actions)) {
         actions.forEach((action: any) => {
           if (action?.priority) {
             const priority = action.priority.toLowerCase();
@@ -131,7 +192,9 @@ export function extractPriorityActions(deals: any[]) {
             }
           }
         });
-      } else if (actions?.priority) {
+      }
+      // Direct single action with priority
+      else if (actions?.priority) {
         const priority = actions.priority.toLowerCase();
         if (priority.includes('high')) {
           highPriorityCount++;
@@ -155,19 +218,31 @@ export function extractObjectionTypes(signals: any[]) {
     try {
       const parsedSignals = safeJsonParse(signal.signals, []);
       
-      if (Array.isArray(parsedSignals)) {
+      // Check if it's an object with a 'signals' array inside
+      if (parsedSignals?.signals && Array.isArray(parsedSignals.signals)) {
+        parsedSignals.signals.forEach((s: any) => {
+          extractObjectionTypeFromSignal(s, objectionTypes);
+        });
+      }
+      // Check if it's a direct array of signals
+      else if (Array.isArray(parsedSignals)) {
         parsedSignals.forEach((s: any) => {
-          if (s?.objection_analysis?.objection_type) {
-            const type = s.objection_analysis.objection_type;
-            // Extract the main type (e.g., "Objection::Pricing" becomes "Pricing")
-            const mainType = type.includes('::') ? type.split('::')[1] : type;
+          extractObjectionTypeFromSignal(s, objectionTypes);
+        });
+      }
+      // Check if it's an object with 'objection_analysis' array
+      else if (parsedSignals?.objection_analysis && Array.isArray(parsedSignals.objection_analysis)) {
+        parsedSignals.objection_analysis.forEach((obj: any) => {
+          if (obj?.objection_type) {
+            const type = obj.objection_type;
+            const mainType = extractMainType(type);
             objectionTypes[mainType] = (objectionTypes[mainType] || 0) + 1;
           }
         });
-      } else if (parsedSignals?.objection_analysis?.objection_type) {
-        const type = parsedSignals.objection_analysis.objection_type;
-        const mainType = type.includes('::') ? type.split('::')[1] : type;
-        objectionTypes[mainType] = (objectionTypes[mainType] || 0) + 1;
+      }
+      // Direct single objection within signal
+      else {
+        extractObjectionTypeFromSignal(parsedSignals, objectionTypes);
       }
     } catch (e) {
       console.error("Error processing objection type data:", e);
@@ -178,6 +253,45 @@ export function extractObjectionTypes(signals: any[]) {
     name,
     value
   }));
+}
+
+// Helper to extract the main type from an objection_type string
+function extractMainType(type: string) {
+  if (!type) return "Unknown";
+  
+  // Handle types like "Objection::Pricing"
+  if (type.includes('::')) {
+    return type.split('::')[1];
+  }
+  
+  // Handle types like "Objection::Product Fit|Objection::Integration"
+  if (type.includes('|')) {
+    const types = type.split('|');
+    return types.map(t => {
+      if (t.includes('::')) {
+        return t.split('::')[1];
+      }
+      return t;
+    }).join('/');
+  }
+  
+  return type;
+}
+
+// Helper to extract objection type from a signal object
+function extractObjectionTypeFromSignal(signal: any, objectionTypes: Record<string, number>) {
+  if (signal?.objection_analysis?.objection_type) {
+    const type = signal.objection_analysis.objection_type;
+    const mainType = extractMainType(type);
+    objectionTypes[mainType] = (objectionTypes[mainType] || 0) + 1;
+  }
+  
+  // Also check for signal_type which might contain objection info
+  else if (signal?.signal_type && signal.signal_type.toLowerCase().includes('objection')) {
+    const type = signal.signal_type;
+    const mainType = extractMainType(type);
+    objectionTypes[mainType] = (objectionTypes[mainType] || 0) + 1;
+  }
 }
 
 // Helper to extract signal confidence data
@@ -192,54 +306,21 @@ export function extractConfidenceData(signals: any[]) {
     try {
       const parsedSignals = safeJsonParse(signal.signals, []);
       
-      if (Array.isArray(parsedSignals)) {
-        parsedSignals.forEach((s: any) => {
-          if (s?.confidence) {
-            const confidence = parseFloat(s.confidence);
-            if (confidence >= confidenceBuckets.high.min) {
-              confidenceBuckets.high.count++;
-            } else if (confidence >= confidenceBuckets.medium.min) {
-              confidenceBuckets.medium.count++;
-            } else {
-              confidenceBuckets.low.count++;
-            }
-          }
-          
-          // Also check for confidence in objection resolution
-          if (s?.objection_analysis?.confidence_in_resolution) {
-            const confidence = parseFloat(s.objection_analysis.confidence_in_resolution);
-            if (confidence >= confidenceBuckets.high.min) {
-              confidenceBuckets.high.count++;
-            } else if (confidence >= confidenceBuckets.medium.min) {
-              confidenceBuckets.medium.count++;
-            } else {
-              confidenceBuckets.low.count++;
-            }
-          }
+      // Check if it's an object with a 'signals' array inside
+      if (parsedSignals?.signals && Array.isArray(parsedSignals.signals)) {
+        parsedSignals.signals.forEach((s: any) => {
+          processConfidenceInSignal(s, confidenceBuckets);
         });
-      } else {
-        // Handle single object case
-        if (parsedSignals?.confidence) {
-          const confidence = parseFloat(parsedSignals.confidence);
-          if (confidence >= confidenceBuckets.high.min) {
-            confidenceBuckets.high.count++;
-          } else if (confidence >= confidenceBuckets.medium.min) {
-            confidenceBuckets.medium.count++;
-          } else {
-            confidenceBuckets.low.count++;
-          }
-        }
-        
-        if (parsedSignals?.objection_analysis?.confidence_in_resolution) {
-          const confidence = parseFloat(parsedSignals.objection_analysis.confidence_in_resolution);
-          if (confidence >= confidenceBuckets.high.min) {
-            confidenceBuckets.high.count++;
-          } else if (confidence >= confidenceBuckets.medium.min) {
-            confidenceBuckets.medium.count++;
-          } else {
-            confidenceBuckets.low.count++;
-          }
-        }
+      }
+      // Check if it's a direct array of signals
+      else if (Array.isArray(parsedSignals)) {
+        parsedSignals.forEach((s: any) => {
+          processConfidenceInSignal(s, confidenceBuckets);
+        });
+      }
+      // Direct single signal
+      else {
+        processConfidenceInSignal(parsedSignals, confidenceBuckets);
       }
     } catch (e) {
       console.error("Error processing confidence data:", e);
@@ -251,6 +332,36 @@ export function extractConfidenceData(signals: any[]) {
     { name: 'Medium', value: confidenceBuckets.medium.count, fill: confidenceBuckets.medium.fillColor },
     { name: 'Low', value: confidenceBuckets.low.count, fill: confidenceBuckets.low.fillColor }
   ];
+}
+
+// Helper to process confidence in a signal object
+function processConfidenceInSignal(s: any, confidenceBuckets: any) {
+  // Check direct confidence field
+  if (s?.confidence) {
+    const confidence = parseFloat(s.confidence);
+    if (!isNaN(confidence)) {
+      addToConfidenceBucket(confidence, confidenceBuckets);
+    }
+  }
+  
+  // Check for confidence in objection resolution
+  if (s?.objection_analysis?.confidence_in_resolution) {
+    const confidence = parseFloat(s.objection_analysis.confidence_in_resolution);
+    if (!isNaN(confidence)) {
+      addToConfidenceBucket(confidence, confidenceBuckets);
+    }
+  }
+}
+
+// Helper to add a confidence value to the appropriate bucket
+function addToConfidenceBucket(confidence: number, buckets: any) {
+  if (confidence >= buckets.high.min) {
+    buckets.high.count++;
+  } else if (confidence >= buckets.medium.min) {
+    buckets.medium.count++;
+  } else {
+    buckets.low.count++;
+  }
 }
 
 // Helper to extract action types from the actions field
@@ -268,26 +379,36 @@ export function extractActionTypes(deals: any[]) {
   deals.forEach(deal => {
     try {
       const actions = safeJsonParse(deal.actions, []);
+      const nbaData = safeJsonParse(deal.nba, {});
       
-      if (Array.isArray(actions)) {
+      // Check NBA action_verb first
+      if (nbaData?.nba_action?.action_verb) {
+        const verb = nbaData.nba_action.action_verb;
+        actionTypes[verb] = (actionTypes[verb] || 0) + 1;
+      }
+      
+      // Check for actions array inside 'actions' property
+      if (actions?.actions && Array.isArray(actions.actions)) {
+        actions.actions.forEach((action: any) => {
+          if (action?.action_verb) {
+            const verb = action.action_verb;
+            actionTypes[verb] = (actionTypes[verb] || 0) + 1;
+          }
+        });
+      }
+      // Check if it's a direct array of actions
+      else if (Array.isArray(actions)) {
         actions.forEach((action: any) => {
           if (action?.action_verb) {
             const verb = action.action_verb;
-            if (actionTypes.hasOwnProperty(verb)) {
-              actionTypes[verb]++;
-            } else {
-              // Handle new action verbs
-              actionTypes[verb] = (actionTypes[verb] || 0) + 1;
-            }
+            actionTypes[verb] = (actionTypes[verb] || 0) + 1;
           }
         });
-      } else if (actions?.action_verb) {
+      }
+      // Direct single action
+      else if (actions?.action_verb) {
         const verb = actions.action_verb;
-        if (actionTypes.hasOwnProperty(verb)) {
-          actionTypes[verb]++;
-        } else {
-          actionTypes[verb] = (actionTypes[verb] || 0) + 1;
-        }
+        actionTypes[verb] = (actionTypes[verb] || 0) + 1;
       }
     } catch (e) {
       console.error("Error processing action data:", e);
@@ -336,4 +457,67 @@ export function extractDealStages(deals: any[]) {
     count: data.count,
     avgDays: data.avgDays
   }));
+}
+
+// Helper to process signal type distribution
+export function processSignalTypeData(deals: any[]) {
+  const signalTypes: Record<string, number> = {
+    "Objections": 0,
+    "Opportunities": 0,
+    "Confusion Points": 0,
+    "External Factors": 0
+  };
+  
+  deals.forEach(deal => {
+    try {
+      const signalsData = safeJsonParse(deal.signals);
+      
+      // Check if it's an object with a 'signals' array inside
+      if (signalsData?.signals && Array.isArray(signalsData.signals)) {
+        signalsData.signals.forEach((signal: any) => {
+          processSignalType(signal, signalTypes);
+        });
+      }
+      // Check if it's a direct array of signals
+      else if (Array.isArray(signalsData)) {
+        signalsData.forEach((signal: any) => {
+          processSignalType(signal, signalTypes);
+        });
+      }
+      // Direct single signal
+      else if (signalsData && typeof signalsData === 'object') {
+        processSignalType(signalsData, signalTypes);
+      }
+    } catch (e) {
+      console.error("Error processing signal type data:", e);
+    }
+  });
+  
+  // Format for pie chart
+  return Object.entries(signalTypes).map(([name, value]) => ({
+    name,
+    value: value || 0
+  }));
+}
+
+// Helper to process signal type
+function processSignalType(signal: any, signalTypes: Record<string, number>) {
+  if (signal?.signal_type) {
+    const signalType = signal.signal_type.toLowerCase();
+    
+    if (signalType.includes('objection')) {
+      signalTypes["Objections"]++;
+    } else if (signalType.includes('opportunity') || signalType.includes('expansion')) {
+      signalTypes["Opportunities"]++;
+    } else if (signalType.includes('confusion')) {
+      signalTypes["Confusion Points"]++;
+    } else if (signalType.includes('external')) {
+      signalTypes["External Factors"]++;
+    }
+  }
+  
+  // Also check for objection_analysis which indicates an objection
+  else if (signal?.objection_analysis) {
+    signalTypes["Objections"]++;
+  }
 }

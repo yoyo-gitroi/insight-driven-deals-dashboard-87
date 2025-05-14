@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +17,7 @@ import {
 import { 
   safeJsonParse, extractResolutionStatus, extractUpsellOpportunities, 
   extractPriorityActions, extractObjectionTypes, extractConfidenceData,
-  extractActionTypes, extractDealStages
+  extractActionTypes, extractDealStages, processSignalTypeData
 } from "@/lib/utils";
 
 interface AEInsightsProps {
@@ -58,31 +57,48 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
       ? crmData
       : crmData.filter(deal => deal.owner === selectedAE);
     
+    console.log("Filtered deals:", deals.length);
     setFilteredDeals(deals);
     
+    if (deals.length > 0) {
+      console.log("Sample deal data:", deals[0]);
+    }
+    
     // Process signal type distribution data
-    processSignalTypeData(deals);
+    const signalTypeResult = processSignalTypeData(deals);
+    console.log("Signal type data:", signalTypeResult);
+    setSignalTypeData(signalTypeResult);
     
     // Process deal progression timeline data
-    processDealProgressionData(deals);
+    const dealProgressionResult = extractDealStages(deals);
+    console.log("Deal progression data:", dealProgressionResult);
+    setDealProgressionData(dealProgressionResult);
     
     // Process objection resolution data
     processObjectionResolutionData(deals);
     
     // Process signal confidence data
-    processConfidenceData(deals);
+    const confidenceResult = extractConfidenceData(deals);
+    console.log("Confidence data:", confidenceResult);
+    setConfidenceData(confidenceResult);
     
     // Process action center data
-    processActionCenterData(deals);
+    const actionCenterResult = extractActionTypes(deals);
+    console.log("Action center data:", actionCenterResult);
+    setActionCenterData(actionCenterResult);
     
     // Process deal value by signal type data
     processDealValueBySignalData(deals);
     
     // Process objection type data
-    processObjectionTypesData(deals);
+    const objectionTypeResult = extractObjectionTypes(deals);
+    console.log("Objection type data:", objectionTypeResult);
+    setObjectionTypeData(objectionTypeResult);
     
     // Process priority actions data
-    processPriorityActionsData(deals);
+    const priorityActionsResult = extractPriorityActions(deals);
+    console.log("Priority actions data:", priorityActionsResult);
+    setPriorityActionsData(priorityActionsResult);
     
     // Process upsell opportunities data
     processUpsellOpportunitiesData(deals);
@@ -108,6 +124,8 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
       };
     }, { resolved: 0, partiallyResolved: 0, inProgress: 0, notResolved: 0 });
     
+    console.log("Resolution counts:", resolutionCounts);
+    
     const totalObjections = resolutionCounts.resolved + resolutionCounts.partiallyResolved + 
                             resolutionCounts.inProgress + resolutionCounts.notResolved;
     
@@ -123,72 +141,21 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
       };
     }, { total: 0, high: 0 });
     
+    console.log("Upsell opportunities:", upsellOps);
+    
     setKpiData({
       totalDeals,
       totalObjections,
       highPriorityActions: priorityActions.high,
       successfulUpsells: upsellOps.high
     });
-  };
-
-  // Process signal type distribution
-  const processSignalTypeData = (deals: any[]) => {
-    const signalTypes: Record<string, number> = {
-      "Objections": 0,
-      "Opportunities": 0,
-      "Confusion Points": 0,
-      "External Factors": 0
-    };
     
-    deals.forEach(deal => {
-      try {
-        const signalsData = safeJsonParse(deal.signals);
-        
-        if (Array.isArray(signalsData)) {
-          signalsData.forEach((signal: any) => {
-            if (signal?.signal_type) {
-              const signalType = signal.signal_type.toLowerCase();
-              if (signalType.includes('objection')) {
-                signalTypes["Objections"]++;
-              } else if (signalType.includes('opportunity') || signalType.includes('expansion')) {
-                signalTypes["Opportunities"]++;
-              } else if (signalType.includes('confusion')) {
-                signalTypes["Confusion Points"]++;
-              } else if (signalType.includes('external')) {
-                signalTypes["External Factors"]++;
-              }
-            }
-          });
-        } else if (signalsData && typeof signalsData === 'object') {
-          const type = signalsData.signal_type || '';
-          if (type.toLowerCase().includes('objection')) {
-            signalTypes["Objections"]++;
-          } else if (type.toLowerCase().includes('opportunity') || type.toLowerCase().includes('expansion')) {
-            signalTypes["Opportunities"]++;
-          } else if (type.toLowerCase().includes('confusion')) {
-            signalTypes["Confusion Points"]++;
-          } else if (type.toLowerCase().includes('external')) {
-            signalTypes["External Factors"]++;
-          }
-        }
-      } catch (e) {
-        console.error("Error processing signal data:", e);
-      }
+    console.log("KPI data:", {
+      totalDeals,
+      totalObjections,
+      highPriorityActions: priorityActions.high,
+      successfulUpsells: upsellOps.high
     });
-    
-    // Format for pie chart
-    const chartData = Object.entries(signalTypes).map(([name, value]) => ({
-      name,
-      value: value || 0
-    }));
-    
-    setSignalTypeData(chartData);
-  };
-
-  // Process deal progression timeline
-  const processDealProgressionData = (deals: any[]) => {
-    const chartData = extractDealStages(deals);
-    setDealProgressionData(chartData);
   };
 
   // Process objection resolution data
@@ -204,6 +171,8 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
       };
     }, { resolved: 0, partiallyResolved: 0, inProgress: 0, notResolved: 0 });
     
+    console.log("Total resolution status:", totalResolutionStatus);
+    
     // Format for chart
     const chartData = [
       { name: "Resolved", value: totalResolutionStatus.resolved },
@@ -213,18 +182,6 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     ];
     
     setObjectionResolutionData(chartData);
-  };
-
-  // Process signal confidence data
-  const processConfidenceData = (deals: any[]) => {
-    const chartData = extractConfidenceData(deals);
-    setConfidenceData(chartData);
-  };
-
-  // Process action center data
-  const processActionCenterData = (deals: any[]) => {
-    const chartData = extractActionTypes(deals);
-    setActionCenterData(chartData);
   };
 
   // Process deal value by signal type
@@ -237,48 +194,35 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
         const dealName = deal.deal_name || 'Unknown Deal';
         
         const signalsData = safeJsonParse(deal.signals);
+        let signalType = 'Unknown';
         
-        if (Array.isArray(signalsData) && signalsData.length > 0) {
-          // Take the first signal for simplicity
-          const signal = signalsData[0];
-          const signalType = signal?.signal_type || 'Unknown';
-          
-          dealValueBySignal.push({
-            name: dealName,
-            signalType,
-            value: dealAmount,
-            x: Math.random() * 100, // For scatter plot X position
-            y: dealAmount / 1000     // Scale down for Y position
-          });
-        } else if (signalsData && typeof signalsData === 'object') {
-          const signalType = signalsData.signal_type || 'Unknown';
-          
-          dealValueBySignal.push({
-            name: dealName,
-            signalType,
-            value: dealAmount,
-            x: Math.random() * 100, // For scatter plot X position
-            y: dealAmount / 1000     // Scale down for Y position
-          });
+        // Check if it's an object with a 'signals' array inside
+        if (signalsData?.signals && Array.isArray(signalsData.signals) && signalsData.signals.length > 0) {
+          signalType = signalsData.signals[0]?.signal_type || 'Unknown';
         }
+        // Check if it's a direct array of signals
+        else if (Array.isArray(signalsData) && signalsData.length > 0) {
+          signalType = signalsData[0]?.signal_type || 'Unknown';
+        }
+        // Direct single signal
+        else if (signalsData && typeof signalsData === 'object') {
+          signalType = signalsData.signal_type || 'Unknown';
+        }
+        
+        dealValueBySignal.push({
+          name: dealName,
+          signalType,
+          value: dealAmount,
+          x: Math.random() * 100, // For scatter plot X position
+          y: dealAmount / 1000     // Scale down for Y position
+        });
       } catch (e) {
         console.error("Error processing deal value data:", e);
       }
     });
     
+    console.log("Deal value by signal data:", dealValueBySignal);
     setDealValueBySignalData(dealValueBySignal);
-  };
-
-  // Process objection types data
-  const processObjectionTypesData = (deals: any[]) => {
-    const chartData = extractObjectionTypes(deals);
-    setObjectionTypeData(chartData);
-  };
-
-  // Process priority actions data
-  const processPriorityActionsData = (deals: any[]) => {
-    const priorityActions = extractPriorityActions(deals);
-    setPriorityActionsData(priorityActions);
   };
 
   // Process upsell opportunities data
@@ -293,6 +237,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
       };
     }, { total: 0, high: 0, medium: 0, low: 0 });
     
+    console.log("Upsell opportunities data:", upsellOps);
     setUpsellOpportunitiesData(upsellOps);
   };
 
