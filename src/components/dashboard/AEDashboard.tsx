@@ -7,6 +7,7 @@ import AEInsights from "@/components/dashboard/AEInsights";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { safeJsonParse } from "@/lib/utils";
 
 interface AEDashboardProps {
   crmData: any[];
@@ -94,36 +95,48 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
           if (stage.includes('qualification')) qualificationCount++;
         }
 
-        // Process signals data for objection resolution status
+        // Process signals data for objection resolution status - IMPROVED VERSION
         let signalsData = deal.signals;
         if (signalsData) {
-          // Convert string to object if needed
-          if (typeof signalsData === 'string') {
-            try {
-              signalsData = JSON.parse(signalsData);
-            } catch (e) {
-              // Handle as string if can't parse
-              if (signalsData.toLowerCase().includes('resolved')) resolvedObjections++;
-              if (signalsData.toLowerCase().includes('partially')) partiallyResolvedObjections++;
-              totalObjections++;
-              return;
-            }
-          }
+          const parsedSignals = safeJsonParse(signalsData, {});
           
-          // If it's an array or object, try to find resolution status
-          if (Array.isArray(signalsData)) {
-            signalsData.forEach((signal: any) => {
-              if (signal && signal.resolution_status) {
+          // Check if it's an object with a 'signals' array inside
+          if (parsedSignals?.signals && Array.isArray(parsedSignals.signals)) {
+            parsedSignals.signals.forEach((s: any) => {
+              // Check for objection_analysis with resolution_status
+              if (s?.objection_analysis?.resolution_status) {
                 totalObjections++;
-                if (signal.resolution_status.toLowerCase().includes('resolved')) resolvedObjections++;
-                if (signal.resolution_status.toLowerCase().includes('partially')) partiallyResolvedObjections++;
+                const status = s.objection_analysis.resolution_status.toLowerCase();
+                if (status.includes('resolved') && !status.includes('partially')) {
+                  resolvedObjections++;
+                } else if (status.includes('partially')) {
+                  partiallyResolvedObjections++;
+                }
               }
             });
-          } else if (typeof signalsData === 'object' && signalsData !== null) {
-            if (signalsData.resolution_status) {
-              totalObjections++;
-              if (signalsData.resolution_status.toLowerCase().includes('resolved')) resolvedObjections++;
-              if (signalsData.resolution_status.toLowerCase().includes('partially')) partiallyResolvedObjections++;
+          }
+          // Check if it's a direct array of signals
+          else if (Array.isArray(parsedSignals)) {
+            parsedSignals.forEach((s: any) => {
+              if (s?.objection_analysis?.resolution_status) {
+                totalObjections++;
+                const status = s.objection_analysis.resolution_status.toLowerCase();
+                if (status.includes('resolved') && !status.includes('partially')) {
+                  resolvedObjections++;
+                } else if (status.includes('partially')) {
+                  partiallyResolvedObjections++;
+                }
+              }
+            });
+          }
+          // Direct single signal with objection_analysis and resolution_status
+          else if (parsedSignals?.objection_analysis?.resolution_status) {
+            totalObjections++;
+            const status = parsedSignals.objection_analysis.resolution_status.toLowerCase();
+            if (status.includes('resolved') && !status.includes('partially')) {
+              resolvedObjections++;
+            } else if (status.includes('partially')) {
+              partiallyResolvedObjections++;
             }
           }
         }
@@ -131,32 +144,52 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
         // Process actions data for upsell opportunities
         let actionsData = deal.actions;
         if (actionsData) {
-          // Convert string to object if needed
-          if (typeof actionsData === 'string') {
-            try {
-              actionsData = JSON.parse(actionsData);
-            } catch (e) {
-              // Handle as string
-              if (actionsData.toLowerCase().includes('upsell')) {
-                upsellOpportunities++;
-                if (actionsData.toLowerCase().includes('successful')) successfulUpsells++;
-              }
-              return;
-            }
-          }
+          const parsedActions = safeJsonParse(actionsData, {});
           
           // If it's an array or object, look for upsell data
-          if (Array.isArray(actionsData)) {
-            actionsData.forEach((action: any) => {
-              if (action && typeof action === 'object' && action.type && action.type.toLowerCase().includes('upsell')) {
+          if (Array.isArray(parsedActions)) {
+            parsedActions.forEach((action: any) => {
+              if (action && typeof action === 'object' && action.type && 
+                  action.type.toLowerCase().includes('upsell')) {
                 upsellOpportunities++;
-                if (action.status && action.status.toLowerCase().includes('successful')) successfulUpsells++;
+                if (action.status && action.status.toLowerCase().includes('successful')) {
+                  successfulUpsells++;
+                }
               }
             });
-          } else if (typeof actionsData === 'object' && actionsData !== null) {
-            if (actionsData.type && actionsData.type.toLowerCase().includes('upsell')) {
+          } else if (typeof parsedActions === 'object' && parsedActions !== null) {
+            if (parsedActions.type && parsedActions.type.toLowerCase().includes('upsell')) {
               upsellOpportunities++;
-              if (actionsData.status && actionsData.status.toLowerCase().includes('successful')) successfulUpsells++;
+              if (parsedActions.status && parsedActions.status.toLowerCase().includes('successful')) {
+                successfulUpsells++;
+              }
+            }
+            
+            // Also check actions array inside actions object
+            if (parsedActions.actions && Array.isArray(parsedActions.actions)) {
+              parsedActions.actions.forEach((action: any) => {
+                if (action && typeof action === 'object' && 
+                    action.action_type && action.action_type.toLowerCase().includes('upsell')) {
+                  upsellOpportunities++;
+                  if (action.status && action.status.toLowerCase().includes('successful')) {
+                    successfulUpsells++;
+                  }
+                }
+              });
+            }
+          }
+        }
+        
+        // Also check NBA data for upsell signals
+        let nbaData = deal.nba;
+        if (nbaData) {
+          const parsedNba = safeJsonParse(nbaData, {});
+          if (parsedNba?.nba_action?.action_type && 
+              parsedNba.nba_action.action_type.toLowerCase().includes('upsell')) {
+            upsellOpportunities++;
+            if (parsedNba.nba_action.status && 
+                parsedNba.nba_action.status.toLowerCase().includes('successful')) {
+              successfulUpsells++;
             }
           }
         }
@@ -187,6 +220,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
     });
     
     setAePerformanceData(aeData);
+    console.log("Updated AE performance data:", aeData);
   };
 
   return (
