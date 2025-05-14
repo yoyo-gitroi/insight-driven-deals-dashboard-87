@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DealTable from "@/components/dashboard/DealTable";
+import InsightsView from "@/components/dashboard/InsightsView";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -23,6 +24,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
   const [dealStages, setDealStages] = useState<string[]>([]);
   const [dealsByStage, setDealsByStage] = useState<Record<string, number>>({});
   const [tabView, setTabView] = useState("ae");
+  const [activeSection, setActiveSection] = useState("playbook");
 
   useEffect(() => {
     // Fixed filter logic: show all deals when selectedAE is "all"
@@ -107,14 +109,35 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Playbook View</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DealTable deals={filteredDeals} />
-        </CardContent>
-      </Card>
+      {/* Section Tabs */}
+      <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
+        <TabsList className="grid w-[400px] grid-cols-2">
+          <TabsTrigger value="playbook">Playbook View</TabsTrigger>
+          <TabsTrigger value="insights">Insights View</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="playbook" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Playbook View</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DealTable deals={filteredDeals} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="insights" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Insights Dashboard</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <InsightsView crmData={crmData} selectedAE={selectedAE} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
