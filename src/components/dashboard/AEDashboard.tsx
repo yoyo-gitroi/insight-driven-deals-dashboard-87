@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
   const [tabView, setTabView] = useState("ae");
   const [aePerformanceData, setAePerformanceData] = useState<any[]>([]);
   const [priorityDealsCount, setPriorityDealsCount] = useState(0);
+  const [priorityDeals, setPriorityDeals] = useState<any[]>([]);
   const [dashboardTab, setDashboardTab] = useState("playbook");
 
   useEffect(() => {
@@ -49,13 +51,46 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
     });
     setDealsByStage(stageCount);
 
-    // Count priority deals (this is a simplified example - define priority as needed)
-    const priorityCount = crmData.filter(deal => 
-      deal.nba && (typeof deal.nba === 'string' ? 
-        deal.nba.toLowerCase().includes('priority') : 
-        JSON.stringify(deal.nba).toLowerCase().includes('priority'))
-    ).length;
-    setPriorityDealsCount(priorityCount);
+    // Find priority deals - use same logic for both AE and Manager views
+    const highPriorityDeals = crmData.filter(deal => {
+      if (!deal.nba || !deal.actions) return false;
+
+      try {
+        // Parse NBA data
+        const nbaData = safeJsonParse(deal.nba, {});
+        
+        // Extract action_reference_id from NBA
+        const actionId = nbaData?.nba_action?.action_reference_id || 
+                         nbaData?.action_reference_id || 
+                         "";
+        
+        if (!actionId) return false;
+        
+        // Parse actions to find the referenced action
+        const actionsData = safeJsonParse(deal.actions, []);
+        
+        // Check if actions is an array or an object with actions array
+        let actionsList = Array.isArray(actionsData) ? actionsData : 
+                         (actionsData.actions && Array.isArray(actionsData.actions) ? actionsData.actions : []);
+                         
+        // Find the specific action by ID
+        const matchedAction = actionsList.find((action: any) => 
+          action.signal_reference_id === actionId || 
+          action.action_reference_id === actionId
+        );
+        
+        // Check if the action has high priority
+        return matchedAction && 
+               matchedAction.priority && 
+               matchedAction.priority.toLowerCase() === "high";
+      } catch (e) {
+        console.error("Error parsing deal data:", e);
+        return false;
+      }
+    });
+    
+    setPriorityDeals(highPriorityDeals);
+    setPriorityDealsCount(highPriorityDeals.length);
 
     // Generate AE performance data for the CRO view
     if (tabView === "manager") {
@@ -386,7 +421,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
               </CardContent>
             </Card>
             
-            <Card className="bg-gradient-to-br from-amber-50 to-white">
+            <Card className="bg-gradient-to-br from-amber-50 to-white hover:shadow-lg transition-shadow">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-amber-800">
                   Priority Deals
@@ -398,6 +433,52 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
               </CardContent>
             </Card>
           </div>
+          
+          {/* Priority Deals Section */}
+          {priorityDeals.length > 0 && (
+            <Card className="mb-6 border-amber-200 bg-gradient-to-br from-amber-50 to-white">
+              <CardHeader>
+                <CardTitle className="flex items-center text-amber-800">
+                  <span className="mr-2">High Priority Deals</span>
+                  <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">
+                    {priorityDeals.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-amber-50/80">
+                        <TableHead className="font-medium">Company</TableHead>
+                        <TableHead className="font-medium">Deal Name</TableHead>
+                        <TableHead className="font-medium">Stage</TableHead>
+                        <TableHead className="font-medium text-right">Amount</TableHead>
+                        <TableHead className="font-medium">Owner</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {priorityDeals.map((deal, i) => (
+                        <TableRow key={`priority-${i}`} className="hover:bg-amber-50/60">
+                          <TableCell className="font-medium">{deal.company_name}</TableCell>
+                          <TableCell>{deal.deal_name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-white">
+                              {deal.deal_stage}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            ${deal.deal_amount?.toLocaleString()}
+                          </TableCell>
+                          <TableCell>{deal.owner}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           <div className="space-y-6">
             {/* Insight 1: AE vs Objection Resolution */}
