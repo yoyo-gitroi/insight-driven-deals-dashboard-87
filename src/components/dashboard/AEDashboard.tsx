@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import DealTable from "@/components/dashboard/DealTable";
 import AEInsights from "@/components/dashboard/AEInsights";
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +17,20 @@ import {
 } from "recharts";
 import { 
   AlertCircle, AlertTriangle, CheckCircle, HelpCircle, 
-  TrendingUp, ChartBar, Info, ChartPie, Award, Flag
+  TrendingUp, ChartBar, Info, ChartPie, Award, Flag,
+  ArrowDown, ArrowUp, Filter, ChevronDown, ChevronUp, 
+  BarChart2, Search, ListCheck
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
 import { 
   extractResolutionStatus, extractUpsellOpportunities, 
   extractPriorityActions, extractObjectionTypes, extractConfidenceData,
@@ -42,7 +53,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
   const [filteredDeals, setFilteredDeals] = useState<any[]>([]);
   const [dealStages, setDealStages] = useState<string[]>([]);
   const [dealsByStage, setDealsByStage] = useState<Record<string, number>>({});
-  const [tabView, setTabView] = useState("ae");
+  const [tabView, setTabView] = useState<"ae" | "manager">("ae");
   const [aePerformanceData, setAePerformanceData] = useState<any[]>([]);
   const [priorityDealsCount, setPriorityDealsCount] = useState(0);
   const [priorityDeals, setPriorityDeals] = useState<any[]>([]);
@@ -257,7 +268,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
           signalType = signalsData.signals[0]?.signal_type || 'Unknown';
         }
         // Check if it's a direct array of signals
-        else if (Array.isArray(signalsData) && signalsData.length > 0) {
+        else if (Array.isArray(signalsData)) {
           signalType = signalsData[0]?.signal_type || 'Unknown';
         }
         // Direct single signal
@@ -422,7 +433,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
             });
           } else if (typeof parsedActions === 'object' && parsedActions !== null) {
             if (parsedActions.type && parsedActions.type.toLowerCase().includes('upsell')) {
-              // Only increment if we didn't already count from signals data
+              // Only increment if we didn't already count from signals or actions data
               if (upsellOpportunities === 0) {
                 upsellOpportunities++;
                 if (parsedActions.status && parsedActions.status.toLowerCase().includes('successful')) {
@@ -504,7 +515,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
         
         <Tabs 
           value={tabView} 
-          onValueChange={setTabView}
+          onValueChange={(value: "ae" | "manager") => setTabView(value)}
           className="w-[400px]"
         >
           <TabsList className="grid w-full grid-cols-2">
