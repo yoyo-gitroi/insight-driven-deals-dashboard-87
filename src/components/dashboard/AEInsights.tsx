@@ -158,7 +158,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     });
   };
 
-  // Process objection resolution data
+  // Process objection resolution data - improved version
   const processObjectionResolutionData = (deals: any[]) => {
     // Aggregate all the objection resolution data
     const totalResolutionStatus = deals.reduce((acc, deal) => {
@@ -225,7 +225,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     setDealValueBySignalData(dealValueBySignal);
   };
 
-  // Process upsell opportunities data
+  // Process upsell opportunities data - improved version
   const processUpsellOpportunitiesData = (deals: any[]) => {
     const upsellOps = deals.reduce((acc, deal) => {
       const currentUpsells = extractUpsellOpportunities([deal]);

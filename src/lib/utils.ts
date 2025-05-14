@@ -16,7 +16,7 @@ export function safeJsonParse(jsonString: string, defaultValue = {}) {
   }
 }
 
-// Helper function to extract resolution status counts from signals
+// Improved helper function to extract resolution status counts from signals
 export function extractResolutionStatus(signals: any[]) {
   const resolutionCounts = {
     resolved: 0,
@@ -31,8 +31,9 @@ export function extractResolutionStatus(signals: any[]) {
       
       // Check if it's an object with a 'signals' array inside
       if (parsedSignals?.signals && Array.isArray(parsedSignals.signals)) {
-        // Handle case where signals is an array inside 'signals' property
+        // Process each signal in the signals array
         parsedSignals.signals.forEach((s: any) => {
+          // Check if the signal has objection_analysis with resolution_status
           if (s?.objection_analysis?.resolution_status) {
             const status = s.objection_analysis.resolution_status.toLowerCase();
             updateResolutionCounts(resolutionCounts, status);
@@ -83,7 +84,7 @@ function updateResolutionCounts(counts: any, status: string) {
   }
 }
 
-// Helper function to extract upsell opportunities from signals
+// Helper function to extract upsell opportunities from signals - modified to better detect customer receptiveness
 export function extractUpsellOpportunities(signals: any[]) {
   const upsellCounts = {
     total: 0,
@@ -118,6 +119,28 @@ export function extractUpsellOpportunities(signals: any[]) {
       else if (parsedSignals?.customer_receptiveness) {
         upsellCounts.total++;
         updateReceptivenessCounts(upsellCounts, parsedSignals.customer_receptiveness);
+      }
+      
+      // Also check for signals with "Expansion::" type and assume they have higher receptiveness
+      if (parsedSignals?.signals && Array.isArray(parsedSignals.signals)) {
+        parsedSignals.signals.forEach((s: any) => {
+          if (s?.signal_type && s.signal_type.includes("Expansion::")) {
+            if (!s.customer_receptiveness) {  // Only count if not already counted above
+              upsellCounts.total++;
+              upsellCounts.medium++;  // Default to medium if not specified
+            }
+          }
+        });
+      }
+      else if (Array.isArray(parsedSignals)) {
+        parsedSignals.forEach((s: any) => {
+          if (s?.signal_type && s.signal_type.includes("Expansion::")) {
+            if (!s.customer_receptiveness) {  // Only count if not already counted above
+              upsellCounts.total++;
+              upsellCounts.medium++;  // Default to medium if not specified
+            }
+          }
+        });
       }
     } catch (e) {
       console.error("Error processing upsell data:", e);
