@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -435,9 +434,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
                     data={confidenceData}
                   >
                     <RadialBar
-                      minAngle={15}
                       background
-                      clockWise
                       dataKey="value"
                       label={{ position: 'insideStart', fill: '#fff' }}
                     />
