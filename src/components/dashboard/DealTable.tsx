@@ -30,7 +30,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
     try {
       // Parse data if they are strings
       let nbaData = deal.nba;
-      let actionsData = deal.actions;
       let signalData = deal.signals;
       
       if (typeof nbaData === 'string' && nbaData.trim()) {
@@ -38,14 +37,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
           nbaData = JSON.parse(nbaData);
         } catch (e) {
           console.error("Error parsing NBA JSON:", e);
-        }
-      }
-      
-      if (typeof actionsData === 'string' && actionsData.trim()) {
-        try {
-          actionsData = JSON.parse(actionsData);
-        } catch (e) {
-          console.error("Error parsing actions JSON:", e);
         }
       }
       
@@ -59,19 +50,9 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
       
       // Extract action_summary from NBA
       let actionSummary = null;
-      let actionReferenceId = null;
       
       if (nbaData && nbaData.nba_action) {
         actionSummary = nbaData.nba_action.action_summary;
-        actionReferenceId = nbaData.nba_action.action_reference_id;
-      }
-      
-      // Find action with matching reference ID
-      let targetAction = null;
-      if (actionReferenceId && actionsData && actionsData.actions) {
-        targetAction = actionsData.actions.find(
-          (action: any) => action.signal_reference_id === actionReferenceId
-        );
       }
       
       // Find signal with highest confidence
@@ -115,7 +96,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
       
       return {
         nba: actionSummary || (typeof nbaData === 'string' ? nbaData : JSON.stringify(nbaData)),
-        action: targetAction,
         signal: {
           signal_type: signalType,
           confidence: confidence,
@@ -123,7 +103,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
         },
         rawData: {
           nba: nbaData,
-          actions: actionsData,
           signals: signalData
         }
       };
@@ -131,11 +110,9 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
       console.error("Error extracting structured data:", error);
       return {
         nba: deal.nba,
-        action: null,
         signal: null,
         rawData: {
           nba: deal.nba,
-          actions: deal.actions,
           signals: deal.signals
         }
       };
@@ -333,37 +310,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                                         <h3 className="text-lg font-semibold">Next Best Action</h3>
                                         <div className="bg-slate-50 p-4 rounded-md">
                                           <p>{formatNBA(extracted.nba)}</p>
-                                        </div>
-                                      </div>
-                                    )}
-                                    
-                                    {extracted.action && (
-                                      <div className="space-y-2">
-                                        <h3 className="text-lg font-semibold">Action Details</h3>
-                                        <div className="bg-slate-50 p-4 rounded-md space-y-3">
-                                          {extracted.action.assigned_to && (
-                                            <div>
-                                              <span className="font-medium">Assigned to:</span> {extracted.action.assigned_to}
-                                            </div>
-                                          )}
-                                          
-                                          {extracted.action.expected_outcome && (
-                                            <div>
-                                              <span className="font-medium">Expected Outcome:</span> {extracted.action.expected_outcome}
-                                            </div>
-                                          )}
-                                          
-                                          {extracted.action.preferred_content_format && (
-                                            <div>
-                                              <span className="font-medium">Preferred Content Format:</span> {extracted.action.preferred_content_format}
-                                            </div>
-                                          )}
-                                          
-                                          {extracted.action.communication_style && (
-                                            <div>
-                                              <span className="font-medium">Communication Style:</span> {extracted.action.communication_style}
-                                            </div>
-                                          )}
                                         </div>
                                       </div>
                                     )}
