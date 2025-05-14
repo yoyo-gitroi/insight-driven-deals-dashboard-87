@@ -5,7 +5,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, 
   Tooltip, Legend, Radar, RadarChart, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, Scatter, ScatterChart,
-  XAxis, YAxis, ZAxis, Sunburst, Treemap,
+  XAxis, YAxis, ZAxis, Treemap,
   CartesianGrid
 } from "recharts";
 import { safeJsonParse, extractObjectionTypes, extractResolutionStatus } from "@/lib/utils";
@@ -169,16 +169,6 @@ export const StrategicSignals: React.FC<StrategicSignalsProps> = ({ data }) => {
     partiallyResolved: '#f59e0b',
     inProgress: '#3b82f6',
     notResolved: '#ef4444'
-  };
-
-  // Format sunburst data from objection types
-  const sunburstData = {
-    name: 'Objections',
-    children: objectionData.map((obj, index) => ({
-      name: obj.name,
-      size: obj.value,
-      color: COLORS[index % COLORS.length]
-    }))
   };
 
   // Transform aggregated resolution data for pie chart

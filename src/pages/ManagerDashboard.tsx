@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import FileUploader from "@/components/dashboard/FileUploader";
 import { 
   LayoutDashboard, PieChart as PieChartIcon, BarChart2, Users, 
-  MapPin, Zap, TrendingUp, Calendar, Filter, Download, FileChart 
+  MapPin, Zap, TrendingUp, Calendar, Filter, Download, FileText 
 } from "lucide-react";
 import { ExecutiveSummary } from "@/components/dashboard/manager/ExecutiveSummary";
 import { PipelineOverview } from "@/components/dashboard/manager/PipelineOverview";
@@ -210,7 +209,7 @@ const ManagerDashboard = () => {
                 Export PDF
               </Button>
               <Button variant="outline" onClick={exportAsCSV}>
-                <FileChart className="mr-2 h-4 w-4" />
+                <FileText className="mr-2 h-4 w-4" />
                 Export CSV
               </Button>
             </>

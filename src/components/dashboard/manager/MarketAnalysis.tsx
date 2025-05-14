@@ -120,7 +120,7 @@ export const MarketAnalysis: React.FC<MarketAnalysisProps> = ({ data }) => {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip 
-                  formatter={(value, name) => {
+                  formatter={(value, name: string) => {
                     if (name.includes("Amount")) {
                       return [formatCurrency(value as number), name.replace("Amount", " Value")];
                     }
@@ -157,44 +157,10 @@ export const MarketAnalysis: React.FC<MarketAnalysisProps> = ({ data }) => {
                 ratio={4/3}
                 stroke="#fff"
                 animationDuration={500}
-                content={(props) => {
-                  const { x, y, width, height, depth, name, size, colors, color } = props;
-                  return (
-                    <g>
-                      <rect
-                        x={x}
-                        y={y}
-                        width={width}
-                        height={height}
-                        fill={color}
-                        stroke="#fff"
-                      />
-                      {width > 50 && height > 30 && (
-                        <text
-                          x={x + width / 2}
-                          y={y + height / 2 - 8}
-                          textAnchor="middle"
-                          fill="#fff"
-                          fontSize={14}
-                        >
-                          {name}
-                        </text>
-                      )}
-                      {width > 50 && height > 30 && (
-                        <text
-                          x={x + width / 2}
-                          y={y + height / 2 + 12}
-                          textAnchor="middle"
-                          fill="#fff"
-                          fontSize={12}
-                        >
-                          {formatCurrency(size)}
-                        </text>
-                      )}
-                    </g>
-                  );
-                }}
               >
+                {treeMapData.map((item, index) => (
+                  <Cell key={`cell-${index}`} fill={item.color} />
+                ))}
               </Treemap>
             </ResponsiveContainer>
           </div>
@@ -226,11 +192,14 @@ export const MarketAnalysis: React.FC<MarketAnalysisProps> = ({ data }) => {
                 </Pie>
                 <Tooltip 
                   formatter={(value, name, props) => {
-                    const entry = sizeData.find(item => item.name === props.name);
-                    return [
-                      `${value} deals ($${entry?.amount.toLocaleString()})`,
-                      props.name
-                    ];
+                    if (props && props.payload) {
+                      const entry = sizeData.find(item => item.name === props.payload.name);
+                      return [
+                        `${value} deals ($${entry?.amount.toLocaleString()})`,
+                        props.payload.name
+                      ];
+                    }
+                    return [value, name];
                   }}
                 />
                 <Legend />
