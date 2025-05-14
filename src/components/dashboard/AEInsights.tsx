@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +11,15 @@ import {
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, AlertTriangle, CheckCircle, HelpCircle, TrendingUp } from "lucide-react";
+import { 
+  AlertCircle, AlertTriangle, CheckCircle, HelpCircle, 
+  TrendingUp, ChartBar, Info, ChartPie, Award, Flag
+} from "lucide-react";
+import { 
+  safeJsonParse, extractResolutionStatus, extractUpsellOpportunities, 
+  extractPriorityActions, extractObjectionTypes, extractConfidenceData,
+  extractActionTypes, extractDealStages
+} from "@/lib/utils";
 
 interface AEInsightsProps {
   crmData: any[];
@@ -25,9 +34,23 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
   const [confidenceData, setConfidenceData] = useState<any[]>([]);
   const [actionCenterData, setActionCenterData] = useState<any[]>([]);
   const [dealValueBySignalData, setDealValueBySignalData] = useState<any[]>([]);
+  const [objectionTypeData, setObjectionTypeData] = useState<any[]>([]);
+  const [priorityActionsData, setPriorityActionsData] = useState<any>({});
+  const [upsellOpportunitiesData, setUpsellOpportunitiesData] = useState<any>({});
+  const [kpiData, setKpiData] = useState<any>({
+    totalDeals: 0,
+    totalObjections: 0,
+    highPriorityActions: 0,
+    successfulUpsells: 0
+  });
 
   // COLORS for charts
   const COLORS = ['#8B5CF6', '#D946EF', '#F97316', '#0EA5E9', '#10B981', '#8E9196'];
+  const CONFIDENCE_COLORS = {
+    high: '#10B981',
+    medium: '#F97316',
+    low: '#EF4444'
+  };
 
   useEffect(() => {
     // Filter deals based on selected AE
@@ -54,8 +77,59 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     
     // Process deal value by signal type data
     processDealValueBySignalData(deals);
+    
+    // Process objection type data
+    processObjectionTypesData(deals);
+    
+    // Process priority actions data
+    processPriorityActionsData(deals);
+    
+    // Process upsell opportunities data
+    processUpsellOpportunitiesData(deals);
+    
+    // Calculate KPIs
+    calculateKPIs(deals);
 
   }, [selectedAE, crmData]);
+
+  // Calculate top-level KPIs
+  const calculateKPIs = (deals: any[]) => {
+    // Total deals
+    const totalDeals = deals.length;
+    
+    // Get objection resolution counts
+    const resolutionCounts = deals.reduce((acc, deal) => {
+      const currentCounts = extractResolutionStatus([deal]);
+      return {
+        resolved: acc.resolved + currentCounts.resolved,
+        partiallyResolved: acc.partiallyResolved + currentCounts.partiallyResolved,
+        inProgress: acc.inProgress + currentCounts.inProgress,
+        notResolved: acc.notResolved + currentCounts.notResolved
+      };
+    }, { resolved: 0, partiallyResolved: 0, inProgress: 0, notResolved: 0 });
+    
+    const totalObjections = resolutionCounts.resolved + resolutionCounts.partiallyResolved + 
+                            resolutionCounts.inProgress + resolutionCounts.notResolved;
+    
+    // High priority actions
+    const priorityActions = extractPriorityActions(deals);
+    
+    // Successful upsells
+    const upsellOps = deals.reduce((acc, deal) => {
+      const currentUpsells = extractUpsellOpportunities([deal]);
+      return {
+        total: acc.total + currentUpsells.total,
+        high: acc.high + currentUpsells.high,
+      };
+    }, { total: 0, high: 0 });
+    
+    setKpiData({
+      totalDeals,
+      totalObjections,
+      highPriorityActions: priorityActions.high,
+      successfulUpsells: upsellOps.high
+    });
+  };
 
   // Process signal type distribution
   const processSignalTypeData = (deals: any[]) => {
@@ -68,32 +142,32 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     
     deals.forEach(deal => {
       try {
-        let signalsData = deal.signals;
-        if (typeof signalsData === 'string') {
-          signalsData = JSON.parse(signalsData);
-        }
+        const signalsData = safeJsonParse(deal.signals);
         
         if (Array.isArray(signalsData)) {
           signalsData.forEach((signal: any) => {
-            if (signal?.signal_type?.includes('objection')) {
-              signalTypes["Objections"]++;
-            } else if (signal?.signal_type?.includes('opportunity')) {
-              signalTypes["Opportunities"]++;
-            } else if (signal?.signal_type?.includes('confusion')) {
-              signalTypes["Confusion Points"]++;
-            } else if (signal?.signal_type?.includes('external')) {
-              signalTypes["External Factors"]++;
+            if (signal?.signal_type) {
+              const signalType = signal.signal_type.toLowerCase();
+              if (signalType.includes('objection')) {
+                signalTypes["Objections"]++;
+              } else if (signalType.includes('opportunity') || signalType.includes('expansion')) {
+                signalTypes["Opportunities"]++;
+              } else if (signalType.includes('confusion')) {
+                signalTypes["Confusion Points"]++;
+              } else if (signalType.includes('external')) {
+                signalTypes["External Factors"]++;
+              }
             }
           });
         } else if (signalsData && typeof signalsData === 'object') {
           const type = signalsData.signal_type || '';
-          if (type.includes('objection')) {
+          if (type.toLowerCase().includes('objection')) {
             signalTypes["Objections"]++;
-          } else if (type.includes('opportunity')) {
+          } else if (type.toLowerCase().includes('opportunity') || type.toLowerCase().includes('expansion')) {
             signalTypes["Opportunities"]++;
-          } else if (type.includes('confusion')) {
+          } else if (type.toLowerCase().includes('confusion')) {
             signalTypes["Confusion Points"]++;
-          } else if (type.includes('external')) {
+          } else if (type.toLowerCase().includes('external')) {
             signalTypes["External Factors"]++;
           }
         }
@@ -113,213 +187,43 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
 
   // Process deal progression timeline
   const processDealProgressionData = (deals: any[]) => {
-    const stageData: Record<string, any> = {
-      "Discovery": { count: 0, avgDays: 0, totalDays: 0 },
-      "Qualification": { count: 0, avgDays: 0, totalDays: 0 },
-      "Implementation": { count: 0, avgDays: 0, totalDays: 0 },
-      "Closed Won": { count: 0, avgDays: 0, totalDays: 0 },
-      "Closed Lost": { count: 0, avgDays: 0, totalDays: 0 }
-    };
-    
-    deals.forEach(deal => {
-      const stage = deal.deal_stage || "Unknown";
-      
-      // Calculate days in stage (simulated data)
-      const daysInStage = Math.floor(Math.random() * 60) + 5; // Simulated data
-      
-      if (stageData[stage]) {
-        stageData[stage].count++;
-        stageData[stage].totalDays += daysInStage;
-      }
-    });
-    
-    // Calculate averages
-    Object.keys(stageData).forEach(stage => {
-      if (stageData[stage].count > 0) {
-        stageData[stage].avgDays = Math.round(stageData[stage].totalDays / stageData[stage].count);
-      }
-    });
-    
-    // Format for line/bar chart
-    const chartData = Object.entries(stageData).map(([name, data]) => ({
-      name,
-      count: data.count,
-      avgDays: data.avgDays
-    }));
-    
+    const chartData = extractDealStages(deals);
     setDealProgressionData(chartData);
   };
 
   // Process objection resolution data
   const processObjectionResolutionData = (deals: any[]) => {
-    const resolutionStatus: Record<string, number> = {
-      "Resolved": 0,
-      "Partially Resolved": 0,
-      "Not Resolved": 0,
-      "In Progress": 0
-    };
-    
-    deals.forEach(deal => {
-      try {
-        let signalsData = deal.signals;
-        if (typeof signalsData === 'string') {
-          signalsData = JSON.parse(signalsData);
-        }
-        
-        if (Array.isArray(signalsData)) {
-          signalsData.forEach((signal: any) => {
-            if (signal?.objection_analysis?.resolution_status) {
-              const status = signal.objection_analysis.resolution_status.toLowerCase();
-              if (status.includes('resolved')) {
-                resolutionStatus["Resolved"]++;
-              } else if (status.includes('partially')) {
-                resolutionStatus["Partially Resolved"]++;
-              } else if (status.includes('progress')) {
-                resolutionStatus["In Progress"]++;
-              } else {
-                resolutionStatus["Not Resolved"]++;
-              }
-            }
-          });
-        } else if (signalsData?.objection_analysis?.resolution_status) {
-          const status = signalsData.objection_analysis.resolution_status.toLowerCase();
-          if (status.includes('resolved')) {
-            resolutionStatus["Resolved"]++;
-          } else if (status.includes('partially')) {
-            resolutionStatus["Partially Resolved"]++;
-          } else if (status.includes('progress')) {
-            resolutionStatus["In Progress"]++;
-          } else {
-            resolutionStatus["Not Resolved"]++;
-          }
-        }
-      } catch (e) {
-        console.error("Error processing objection data:", e);
-      }
-    });
+    // Aggregate all the objection resolution data
+    const totalResolutionStatus = deals.reduce((acc, deal) => {
+      const currentCounts = extractResolutionStatus([deal]);
+      return {
+        resolved: acc.resolved + currentCounts.resolved,
+        partiallyResolved: acc.partiallyResolved + currentCounts.partiallyResolved,
+        inProgress: acc.inProgress + currentCounts.inProgress,
+        notResolved: acc.notResolved + currentCounts.notResolved
+      };
+    }, { resolved: 0, partiallyResolved: 0, inProgress: 0, notResolved: 0 });
     
     // Format for chart
-    const chartData = Object.entries(resolutionStatus).map(([name, value]) => ({
-      name,
-      value: value || 0
-    }));
+    const chartData = [
+      { name: "Resolved", value: totalResolutionStatus.resolved },
+      { name: "Partially Resolved", value: totalResolutionStatus.partiallyResolved },
+      { name: "In Progress", value: totalResolutionStatus.inProgress },
+      { name: "Not Resolved", value: totalResolutionStatus.notResolved }
+    ];
     
     setObjectionResolutionData(chartData);
   };
 
   // Process signal confidence data
   const processConfidenceData = (deals: any[]) => {
-    const confidenceScores: Record<string, any> = {
-      "High": { count: 0, fillColor: '#10B981' },
-      "Medium": { count: 0, fillColor: '#F97316' },
-      "Low": { count: 0, fillColor: '#EF4444' }
-    };
-    
-    deals.forEach(deal => {
-      try {
-        let signalsData = deal.signals;
-        if (typeof signalsData === 'string') {
-          signalsData = JSON.parse(signalsData);
-        }
-        
-        if (Array.isArray(signalsData)) {
-          signalsData.forEach((signal: any) => {
-            if (signal?.confidence) {
-              const confidence = parseFloat(signal.confidence);
-              if (confidence >= 0.7) {
-                confidenceScores["High"].count++;
-              } else if (confidence >= 0.4) {
-                confidenceScores["Medium"].count++;
-              } else {
-                confidenceScores["Low"].count++;
-              }
-            }
-          });
-        } else if (signalsData?.confidence) {
-          const confidence = parseFloat(signalsData.confidence);
-          if (confidence >= 0.7) {
-            confidenceScores["High"].count++;
-          } else if (confidence >= 0.4) {
-            confidenceScores["Medium"].count++;
-          } else {
-            confidenceScores["Low"].count++;
-          }
-        }
-      } catch (e) {
-        console.error("Error processing confidence data:", e);
-      }
-    });
-    
-    // Format for radial bar chart
-    const chartData = Object.entries(confidenceScores).map(([name, data], index) => ({
-      name,
-      value: data.count,
-      fill: data.fillColor,
-      outerRadius: 100 - index * 20
-    }));
-    
+    const chartData = extractConfidenceData(deals);
     setConfidenceData(chartData);
   };
 
   // Process action center data
   const processActionCenterData = (deals: any[]) => {
-    const actionTypes: Record<string, number> = {
-      "Reframe": 0,
-      "Educate": 0,
-      "Accelerate": 0,
-      "Trigger": 0,
-      "Follow Up": 0
-    };
-    
-    deals.forEach(deal => {
-      try {
-        let actionsData = deal.actions;
-        if (typeof actionsData === 'string') {
-          actionsData = JSON.parse(actionsData);
-        }
-        
-        if (Array.isArray(actionsData)) {
-          actionsData.forEach((action: any) => {
-            if (action?.action_verb) {
-              const verb = action.action_verb.toLowerCase();
-              if (verb.includes('reframe')) {
-                actionTypes["Reframe"]++;
-              } else if (verb.includes('educate')) {
-                actionTypes["Educate"]++;
-              } else if (verb.includes('accelerate')) {
-                actionTypes["Accelerate"]++;
-              } else if (verb.includes('trigger')) {
-                actionTypes["Trigger"]++;
-              } else if (verb.includes('follow')) {
-                actionTypes["Follow Up"]++;
-              }
-            }
-          });
-        } else if (actionsData?.action_verb) {
-          const verb = actionsData.action_verb.toLowerCase();
-          if (verb.includes('reframe')) {
-            actionTypes["Reframe"]++;
-          } else if (verb.includes('educate')) {
-            actionTypes["Educate"]++;
-          } else if (verb.includes('accelerate')) {
-            actionTypes["Accelerate"]++;
-          } else if (verb.includes('trigger')) {
-            actionTypes["Trigger"]++;
-          } else if (verb.includes('follow')) {
-            actionTypes["Follow Up"]++;
-          }
-        }
-      } catch (e) {
-        console.error("Error processing action data:", e);
-      }
-    });
-    
-    // Format for bar chart
-    const chartData = Object.entries(actionTypes).map(([name, value]) => ({
-      name,
-      value: value || 0
-    }));
-    
+    const chartData = extractActionTypes(deals);
     setActionCenterData(chartData);
   };
 
@@ -332,10 +236,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
         const dealAmount = parseFloat(deal.deal_amount) || 0;
         const dealName = deal.deal_name || 'Unknown Deal';
         
-        let signalsData = deal.signals;
-        if (typeof signalsData === 'string') {
-          signalsData = JSON.parse(signalsData);
-        }
+        const signalsData = safeJsonParse(deal.signals);
         
         if (Array.isArray(signalsData) && signalsData.length > 0) {
           // Take the first signal for simplicity
@@ -368,11 +269,89 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     setDealValueBySignalData(dealValueBySignal);
   };
 
+  // Process objection types data
+  const processObjectionTypesData = (deals: any[]) => {
+    const chartData = extractObjectionTypes(deals);
+    setObjectionTypeData(chartData);
+  };
+
+  // Process priority actions data
+  const processPriorityActionsData = (deals: any[]) => {
+    const priorityActions = extractPriorityActions(deals);
+    setPriorityActionsData(priorityActions);
+  };
+
+  // Process upsell opportunities data
+  const processUpsellOpportunitiesData = (deals: any[]) => {
+    const upsellOps = deals.reduce((acc, deal) => {
+      const currentUpsells = extractUpsellOpportunities([deal]);
+      return {
+        total: acc.total + currentUpsells.total,
+        high: acc.high + currentUpsells.high,
+        medium: acc.medium + currentUpsells.medium,
+        low: acc.low + currentUpsells.low
+      };
+    }, { total: 0, high: 0, medium: 0, low: 0 });
+    
+    setUpsellOpportunitiesData(upsellOps);
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">
         {selectedAE === "all" ? "All Account Executives" : selectedAE} Insights
       </h2>
+      
+      {/* KPI Section */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="h-5 w-5 text-primary" />
+                <span className="font-medium">Total Deals</span>
+              </div>
+              <p className="text-3xl font-bold">{kpiData.totalDeals}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                <span className="font-medium">Total Objections</span>
+              </div>
+              <p className="text-3xl font-bold">{kpiData.totalObjections}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-2 mb-2">
+                <Flag className="h-5 w-5 text-rose-500" />
+                <span className="font-medium">High Priority</span>
+              </div>
+              <p className="text-3xl font-bold">{kpiData.highPriorityActions}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-2 mb-2">
+                <Award className="h-5 w-5 text-green-500" />
+                <span className="font-medium">Successful Upsells</span>
+              </div>
+              <p className="text-3xl font-bold">{kpiData.successfulUpsells}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
       
       <Tabs defaultValue="signal-analysis" className="w-full">
         <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
@@ -389,7 +368,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
             <Card className="col-span-1">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <HelpCircle className="h-5 w-5" />
+                  <ChartPie className="h-5 w-5" />
                   Signal Type Distribution
                 </CardTitle>
               </CardHeader>
@@ -413,6 +392,37 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
                     <Tooltip formatter={(value: number) => [value, 'Count']} />
                     <Legend />
                   </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Objection Types Distribution */}
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  Objection Types
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={objectionTypeData}
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis 
+                      type="category" 
+                      dataKey="name" 
+                      width={100}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip formatter={(value: number) => [value, 'Count']} />
+                    <Legend />
+                    <Bar dataKey="value" name="Count" fill="#D946EF" />
+                  </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -451,7 +461,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
             </Card>
 
             {/* Deal Value by Signal Heat Map (Simplified as Scatter) */}
-            <Card className="col-span-1 md:col-span-2">
+            <Card className="col-span-1">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
@@ -466,7 +476,25 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
                     <CartesianGrid />
                     <XAxis type="number" dataKey="x" name="Index" unit="" />
                     <YAxis type="number" dataKey="y" name="Deal Amount" unit="K" />
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value: number) => [`$${value * 1000}`, 'Deal Amount']} />
+                    <Tooltip 
+                      cursor={{ strokeDasharray: '3 3' }} 
+                      formatter={(value: number, name: string, props: any) => {
+                        if (name === 'Deal Amount') return [`$${value * 1000}`, name];
+                        return [value, name];
+                      }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-white p-2 border rounded shadow-sm">
+                              <p className="font-medium">{payload[0].payload.name}</p>
+                              <p>Signal: {payload[0].payload.signalType}</p>
+                              <p>Amount: ${payload[0].payload.value.toLocaleString()}</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
                     <Scatter name="Deal Values" data={dealValueBySignalData} fill="#8884d8" />
                   </ScatterChart>
                 </ResponsiveContainer>
@@ -482,7 +510,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5" />
+                  <ChartBar className="h-5 w-5" />
                   Deal Progression Timeline
                 </CardTitle>
               </CardHeader>
@@ -507,7 +535,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
 
             {/* Deal Timeline Explanation */}
             <Alert>
-              <AlertCircle className="h-4 w-4" />
+              <Info className="h-4 w-4" />
               <AlertDescription>
                 The chart above shows the distribution of deals across different stages and the average number of days 
                 deals spend in each stage. This helps identify potential bottlenecks in the sales process.
@@ -565,6 +593,75 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
                 </Card>
               ))}
             </div>
+            
+            {/* Upsell Opportunities Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Upsell Opportunities Analysis
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="col-span-1 md:col-span-2">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'High', value: upsellOpportunitiesData.high, fill: '#10B981' },
+                            { name: 'Medium', value: upsellOpportunitiesData.medium, fill: '#F97316' },
+                            { name: 'Low', value: upsellOpportunitiesData.low, fill: '#EF4444' }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                        </Pie>
+                        <Tooltip formatter={(value: number) => [value, 'Count']} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="col-span-1 md:col-span-2 grid grid-cols-3 gap-2">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex flex-col items-center">
+                          <Badge className="mb-2 bg-blue-500">Total</Badge>
+                          <p className="text-2xl font-bold">{upsellOpportunitiesData.total}</p>
+                          <p className="text-xs text-muted-foreground">opportunities</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex flex-col items-center">
+                          <Badge className="mb-2 bg-green-500">Success</Badge>
+                          <p className="text-2xl font-bold">{upsellOpportunitiesData.high}</p>
+                          <p className="text-xs text-muted-foreground">high receptiveness</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex flex-col items-center">
+                          <Badge className="mb-2">Rate</Badge>
+                          <p className="text-2xl font-bold">
+                            {upsellOpportunitiesData.total ? 
+                              Math.round((upsellOpportunitiesData.high / upsellOpportunitiesData.total) * 100) : 
+                              0}%
+                          </p>
+                          <p className="text-xs text-muted-foreground">success rate</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
         
@@ -623,6 +720,62 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
                       </Badge>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Priority Actions Overview */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Flag className="h-5 w-5" />
+                  Priority Actions Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'High Priority', value: priorityActionsData.high, fill: '#F97316' },
+                          { name: 'Medium Priority', value: priorityActionsData.medium, fill: '#FCD34D' }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                      </Pie>
+                      <Tooltip formatter={(value: number) => [value, 'Count']} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  
+                  <div className="flex flex-col justify-center">
+                    <div className="mb-4">
+                      <h4 className="text-lg font-medium">Action Priority Summary</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        High priority actions require immediate attention to avoid potential deal blockers.
+                        Medium priority actions should be planned within the next week.
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                        <div className="text-amber-600 font-medium">High</div>
+                        <div className="text-2xl font-bold">{priorityActionsData.high}</div>
+                        <div className="text-xs text-amber-600">Urgent Actions</div>
+                      </div>
+                      <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-md">
+                        <div className="text-yellow-600 font-medium">Medium</div>
+                        <div className="text-2xl font-bold">{priorityActionsData.medium}</div>
+                        <div className="text-xs text-yellow-600">Scheduled Actions</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
