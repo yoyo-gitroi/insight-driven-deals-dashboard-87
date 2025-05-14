@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { safeJsonParse } from "@/lib/utils";
+import ObjectionCharts from "@/components/dashboard/ObjectionCharts";
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -727,6 +728,12 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                 </div>
               </CardContent>
             </Card>
+          </div>
+          
+          {/* CRO Dashboard: Objection Analysis section - Moved here */}
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">CRO Dashboard: Objection Analysis</h2>
+            <ObjectionCharts crmData={crmData} />
           </div>
           
           {/* Keep the existing tables */}
