@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,7 +94,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
           if (stage.includes('qualification')) qualificationCount++;
         }
 
-        // Process signals data for objection resolution status - IMPROVED VERSION
+        // Process signals data for objection resolution status and upsell opportunities - IMPROVED VERSION
         let signalsData = deal.signals;
         if (signalsData) {
           const parsedSignals = safeJsonParse(signalsData, {});
@@ -113,6 +112,15 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                   partiallyResolvedObjections++;
                 }
               }
+              
+              // Check for upsell opportunities with customer_receptiveness
+              if (s?.customer_receptiveness) {
+                upsellOpportunities++;
+                // Count as successful upsell if customer_receptiveness is "High"
+                if (s.customer_receptiveness === "High") {
+                  successfulUpsells++;
+                }
+              }
             });
           }
           // Check if it's a direct array of signals
@@ -127,6 +135,15 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                   partiallyResolvedObjections++;
                 }
               }
+              
+              // Check for upsell opportunities with customer_receptiveness
+              if (s?.customer_receptiveness) {
+                upsellOpportunities++;
+                // Count as successful upsell if customer_receptiveness is "High"
+                if (s.customer_receptiveness === "High") {
+                  successfulUpsells++;
+                }
+              }
             });
           }
           // Direct single signal with objection_analysis and resolution_status
@@ -138,10 +155,20 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
             } else if (status.includes('partially')) {
               partiallyResolvedObjections++;
             }
+            
+            // Check for upsell opportunities with customer_receptiveness
+            if (parsedSignals?.customer_receptiveness) {
+              upsellOpportunities++;
+              // Count as successful upsell if customer_receptiveness is "High"
+              if (parsedSignals.customer_receptiveness === "High") {
+                successfulUpsells++;
+              }
+            }
           }
         }
 
-        // Process actions data for upsell opportunities
+        // Process actions data for upsell opportunities - This original section is kept 
+        // but now we prioritize the signal's customer_receptiveness field
         let actionsData = deal.actions;
         if (actionsData) {
           const parsedActions = safeJsonParse(actionsData, {});
@@ -151,17 +178,23 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
             parsedActions.forEach((action: any) => {
               if (action && typeof action === 'object' && action.type && 
                   action.type.toLowerCase().includes('upsell')) {
-                upsellOpportunities++;
-                if (action.status && action.status.toLowerCase().includes('successful')) {
-                  successfulUpsells++;
+                // Only increment if we didn't already count from signals data
+                if (upsellOpportunities === 0) {
+                  upsellOpportunities++;
+                  if (action.status && action.status.toLowerCase().includes('successful')) {
+                    successfulUpsells++;
+                  }
                 }
               }
             });
           } else if (typeof parsedActions === 'object' && parsedActions !== null) {
             if (parsedActions.type && parsedActions.type.toLowerCase().includes('upsell')) {
-              upsellOpportunities++;
-              if (parsedActions.status && parsedActions.status.toLowerCase().includes('successful')) {
-                successfulUpsells++;
+              // Only increment if we didn't already count from signals data
+              if (upsellOpportunities === 0) {
+                upsellOpportunities++;
+                if (parsedActions.status && parsedActions.status.toLowerCase().includes('successful')) {
+                  successfulUpsells++;
+                }
               }
             }
             
@@ -170,9 +203,12 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
               parsedActions.actions.forEach((action: any) => {
                 if (action && typeof action === 'object' && 
                     action.action_type && action.action_type.toLowerCase().includes('upsell')) {
-                  upsellOpportunities++;
-                  if (action.status && action.status.toLowerCase().includes('successful')) {
-                    successfulUpsells++;
+                  // Only increment if we didn't already count from signals data
+                  if (upsellOpportunities === 0) {
+                    upsellOpportunities++;
+                    if (action.status && action.status.toLowerCase().includes('successful')) {
+                      successfulUpsells++;
+                    }
                   }
                 }
               });
@@ -186,10 +222,13 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
           const parsedNba = safeJsonParse(nbaData, {});
           if (parsedNba?.nba_action?.action_type && 
               parsedNba.nba_action.action_type.toLowerCase().includes('upsell')) {
-            upsellOpportunities++;
-            if (parsedNba.nba_action.status && 
-                parsedNba.nba_action.status.toLowerCase().includes('successful')) {
-              successfulUpsells++;
+            // Only increment if we didn't already count from signals or actions data
+            if (upsellOpportunities === 0) {
+              upsellOpportunities++;
+              if (parsedNba.nba_action.status && 
+                  parsedNba.nba_action.status.toLowerCase().includes('successful')) {
+                successfulUpsells++;
+              }
             }
           }
         }
