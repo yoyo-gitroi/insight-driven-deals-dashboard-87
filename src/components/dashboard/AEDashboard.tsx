@@ -572,7 +572,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
       </div>
 
       {tabView === "ae" && (
-        // ... keep existing code (AE view)
+        <DealTable deals={filteredDeals} />
       )}
       
       {tabView === "manager" && (
@@ -1089,7 +1089,6 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                 </TabsTrigger>
               </TabsList>
             </div>
-            
             {/* Signal Analysis Tab - Enhanced UI */}
             <TabsContent value="signal-analysis" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1152,7 +1151,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                           type="category" 
                           dataKey="name" 
                           width={100}
-                          tick={{ fontSize: 12 }}
+                          tick={{ fontSize: 12 }} 
                         />
                         <Tooltip formatter={(value: number) => [value, 'Count']} />
                         <Legend />
@@ -1191,7 +1190,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                           iconSize={10} 
                           layout="vertical" 
                           verticalAlign="middle" 
-                          wrapperStyle={{ lineHeight: '40px' }}
+                          wrapperStyle={{ lineHeight: '40px' }} 
                         />
                         <Tooltip formatter={(value: number) => [value, 'Count']} />
                       </RadialBarChart>
@@ -1223,7 +1222,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                           formatter={(value: number, name: string, props: any) => {
                             if (name === 'Deal Amount') return [`$${value * 1000}`, name];
                             return [value, name];
-                          }}
+                          }} 
                           content={({ active, payload }) => {
                             if (active && payload && payload.length) {
                               return (
@@ -1235,7 +1234,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                               );
                             }
                             return null;
-                          }}
+                          }} 
                         />
                         <Scatter name="Deal Values" data={dealValueBySignalData} fill="#8884d8" />
                       </ScatterChart>
@@ -1480,7 +1479,6 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                 </Card>
               </div>
             </TabsContent>
-            
             {/* Action Center Tab - Enhanced UI */}
             <TabsContent value="action-center" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
