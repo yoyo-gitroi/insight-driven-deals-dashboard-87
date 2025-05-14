@@ -13,7 +13,6 @@ import {
   Line,
   FunnelChart,
   Funnel,
-  FunnelItem,
   LabelList,
   Cell
 } from "recharts";

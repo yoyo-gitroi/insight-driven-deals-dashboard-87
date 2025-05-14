@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PieChart,
   Pie,
-  Sunburst,
   Treemap,
   Cell,
   Tooltip,
@@ -16,6 +15,8 @@ import {
   YAxis,
   ZAxis,
   CartesianGrid,
+  BarChart,
+  Bar
 } from "recharts";
 import { safeJsonParse } from "@/lib/utils";
 
@@ -29,8 +30,8 @@ const COLORS = [
 ];
 
 const StrategicSignals: React.FC<StrategicSignalsProps> = ({ data }) => {
-  // Process objections data for sunburst chart
-  const extractObjectionsForSunburst = () => {
+  // Process objections data for treemap chart (instead of sunburst)
+  const extractObjectionsForTreemap = () => {
     const objectionTypes: Record<string, any> = {};
     
     data.forEach(deal => {
@@ -77,18 +78,20 @@ const StrategicSignals: React.FC<StrategicSignalsProps> = ({ data }) => {
           }
         });
       } catch (error) {
-        console.error("Error processing signals for sunburst:", error);
+        console.error("Error processing signals for treemap:", error);
       }
     });
     
-    // Convert to array structure for sunburst
-    return {
-      name: 'Objections',
-      children: Object.values(objectionTypes)
-    };
+    // Convert to array structure for treemap
+    const objectionTreeData = Object.values(objectionTypes).map(objType => ({
+      name: objType.name,
+      children: objType.children
+    }));
+    
+    return objectionTreeData;
   };
   
-  const objectionSunburstData = extractObjectionsForSunburst();
+  const objectionTreemapData = extractObjectionsForTreemap();
   
   // Process signal confidence matrix data
   const extractSignalConfidenceMatrix = () => {
@@ -154,7 +157,7 @@ const StrategicSignals: React.FC<StrategicSignalsProps> = ({ data }) => {
   
   const confidenceMatrixData = extractSignalConfidenceMatrix();
   
-  // Process opportunity signals for gauge chart
+  // Process opportunity signals for bar chart
   const extractOpportunitySignals = () => {
     const opportunityCounts: Record<string, { high: number, medium: number, low: number }> = {};
     
@@ -207,7 +210,7 @@ const StrategicSignals: React.FC<StrategicSignalsProps> = ({ data }) => {
   
   const opportunityData = extractOpportunitySignals();
   
-  // Custom tooltip for the sunburst
+  // Custom tooltip for the treemap
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -220,6 +223,36 @@ const StrategicSignals: React.FC<StrategicSignalsProps> = ({ data }) => {
       );
     }
     return null;
+  };
+  
+  // Custom treemap content
+  const CustomizedTreemapContent = (props: any) => {
+    const { x, y, width, height, root, depth, name, index, children, ...rest } = props;
+    
+    // Only render if there's enough space
+    if (width < 30 || height < 30) return null;
+    
+    return (
+      <g>
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          style={{ fill: props.fill || COLORS[index % COLORS.length], stroke: '#fff', strokeWidth: 2 }}
+        />
+        <text
+          x={x + width / 2}
+          y={y + height / 2}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#fff"
+          fontSize={12}
+        >
+          {name}
+        </text>
+      </g>
+    );
   };
   
   // Generate scatter data for confidence visualization
@@ -270,18 +303,20 @@ const StrategicSignals: React.FC<StrategicSignalsProps> = ({ data }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Top Objections Sunburst</CardTitle>
+            <CardTitle>Top Objections Treemap</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <Sunburst
-                  data={objectionSunburstData}
-                  dataKey="size"
-                  nameKey="name"
+                <Treemap
+                  data={objectionTreemapData}
+                  dataKey="children"
+                  ratio={4/3}
+                  stroke="#fff"
+                  content={<CustomizedTreemapContent />}
                 >
                   <Tooltip content={<CustomTooltip />} />
-                </Sunburst>
+                </Treemap>
               </ResponsiveContainer>
             </div>
           </CardContent>

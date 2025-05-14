@@ -229,7 +229,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ data }) => {
                 >
                   <RadialBar 
                     background
-                    clockwise={false}
+                    clockWise={false}
                     dataKey="value" 
                     cornerRadius={10}
                   />
