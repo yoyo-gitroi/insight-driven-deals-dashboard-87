@@ -131,6 +131,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ data, stageP
                 cy="100%"
               >
                 <RadialBar
+                  minAngle={15}
                   background
                   clockWise
                   dataKey="value"
