@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import DealTable from "@/components/dashboard/DealTable";
 import AEInsights from "@/components/dashboard/AEInsights";
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +17,20 @@ import {
 } from "recharts";
 import { 
   AlertCircle, AlertTriangle, CheckCircle, HelpCircle, 
-  TrendingUp, ChartBar, Info, ChartPie, Award, Flag
+  TrendingUp, ChartBar, Info, ChartPie, Award, Flag,
+  ArrowDown, ArrowUp, Filter, ChevronDown, ChevronUp, 
+  BarChart2, Search, ListCheck
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
 import { 
   extractResolutionStatus, extractUpsellOpportunities, 
   extractPriorityActions, extractObjectionTypes, extractConfidenceData,
@@ -47,10 +58,14 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
   const [priorityDealsCount, setPriorityDealsCount] = useState(0);
   const [priorityDeals, setPriorityDeals] = useState<any[]>([]);
   const [dashboardTab, setDashboardTab] = useState("playbook");
+  const [managerTab, setManagerTab] = useState("signal-analysis");
+  const [showCompleteAEList, setShowCompleteAEList] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: "totalDeals", direction: "desc" });
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
   
   // New state for Manager/CRO charts
   const [signalTypeData, setSignalTypeData] = useState<any[]>([]);
-  const [dealProgressionData, setDealProgressionData] = useState<any[]>([]);
   const [objectionResolutionData, setObjectionResolutionData] = useState<any[]>([]);
   const [confidenceData, setConfidenceData] = useState<any[]>([]);
   const [actionCenterData, setActionCenterData] = useState<any[]>([]);
@@ -142,10 +157,6 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
       // Process signal type distribution data
       const signalTypeResult = processSignalTypeData(crmData);
       setSignalTypeData(signalTypeResult);
-      
-      // Process deal progression timeline data
-      const dealProgressionResult = extractDealStages(crmData);
-      setDealProgressionData(dealProgressionResult);
       
       // Process objection resolution data
       processObjectionResolutionData(crmData);
@@ -495,6 +506,52 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
     console.log("Updated AE performance data:", aeData);
   };
 
+  // Sort function for AE performance data
+  const sortedAEData = React.useMemo(() => {
+    let sortableData = [...aePerformanceData];
+    
+    // Filter by search term if present
+    if (searchTerm) {
+      sortableData = sortableData.filter(ae => 
+        ae.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Sort data based on current sort config
+    return sortableData.sort((a, b) => {
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [aePerformanceData, sortConfig, searchTerm]);
+
+  // Handle sorting when column header is clicked
+  const requestSort = (key: string) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Get sort direction indicator
+  const getSortDirectionIndicator = (columnName: string) => {
+    if (sortConfig.key !== columnName) return null;
+    
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp className="h-4 w-4 inline ml-1" /> 
+      : <ArrowDown className="h-4 w-4 inline ml-1" />;
+  };
+
+  // Toggle card expanded state
+  const toggleCardExpanded = (cardId: string) => {
+    setExpandedCard(expandedCard === cardId ? null : cardId);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -515,136 +572,146 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
       </div>
 
       {tabView === "ae" && (
-        <>
-          <div className="pb-4">
-            <label htmlFor="ae-select" className="block text-sm font-medium text-gray-700 mb-1">
-              Select Account Executive
-            </label>
-            <Select value={selectedAE} onValueChange={setSelectedAE}>
-              <SelectTrigger className="w-[300px]">
-                <SelectValue placeholder="Select Account Executive" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Account Executives</SelectItem>
-                {aeList.map((ae) => (
-                  <SelectItem key={ae} value={ae}>{ae}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Deals
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{filteredDeals.length}</div>
-              </CardContent>
-            </Card>
-            
-            {dealStages.map((stage) => (
-              <Card key={stage}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    {stage}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dealsByStage[stage] || 0}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Tabs for switching between Playbook and Insights views */}
-          <Tabs value={dashboardTab} onValueChange={setDashboardTab}>
-            <TabsList>
-              <TabsTrigger value="playbook">Playbook View</TabsTrigger>
-              <TabsTrigger value="insights">Insights View</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="playbook">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Playbook View</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DealTable deals={filteredDeals} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="insights">
-              <Card>
-                <CardContent className="pt-6">
-                  <AEInsights 
-                    crmData={filteredDeals}
-                    selectedAE={selectedAE}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </>
+        // ... keep existing code (AE view)
       )}
       
       {tabView === "manager" && (
         <>
-          {/* CRO Dashboard Content */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card className="bg-gradient-to-br from-purple-50 to-white">
+          {/* CRO Dashboard Content - Enhanced UI */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card className="bg-gradient-to-br from-purple-50 to-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => toggleCardExpanded('totalDeals')}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-purple-800">
-                  Total Deals
+                <CardTitle className="text-sm font-medium text-purple-800 flex justify-between items-center">
+                  <span>Total Deals</span>
+                  {expandedCard === 'totalDeals' ? 
+                    <ChevronUp className="h-4 w-4" /> : 
+                    <ChevronDown className="h-4 w-4" />
+                  }
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-purple-900">{crmData.length}</div>
                 <p className="text-xs text-purple-600 mt-1">Across all account executives</p>
+                
+                <Collapsible open={expandedCard === 'totalDeals'}>
+                  <CollapsibleContent className="pt-4">
+                    <div className="text-sm space-y-1">
+                      <p><span className="font-medium">Average Deal Value:</span> ${Math.round(crmData.reduce((sum, deal) => sum + (parseFloat(deal.deal_amount) || 0), 0) / crmData.length).toLocaleString()}</p>
+                      <p><span className="font-medium">Largest Deal:</span> ${Math.max(...crmData.map(deal => parseFloat(deal.deal_amount) || 0)).toLocaleString()}</p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </CardContent>
             </Card>
             
-            <Card className="bg-gradient-to-br from-blue-50 to-white">
+            <Card className="bg-gradient-to-br from-blue-50 to-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => toggleCardExpanded('activeAEs')}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-blue-800">
-                  Active AEs
+                <CardTitle className="text-sm font-medium text-blue-800 flex justify-between items-center">
+                  <span>Active AEs</span>
+                  {expandedCard === 'activeAEs' ? 
+                    <ChevronUp className="h-4 w-4" /> : 
+                    <ChevronDown className="h-4 w-4" />
+                  }
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-blue-900">{aeList.length}</div>
                 <p className="text-xs text-blue-600 mt-1">Team members with assigned deals</p>
+                
+                <Collapsible open={expandedCard === 'activeAEs'}>
+                  <CollapsibleContent className="pt-4">
+                    <div className="text-sm space-y-1">
+                      <p><span className="font-medium">Average Deals per AE:</span> {Math.round(crmData.length / aeList.length)}</p>
+                      <p><span className="font-medium">Top Performer:</span> {sortedAEData[0]?.name || 'N/A'}</p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </CardContent>
             </Card>
             
-            <Card className="bg-gradient-to-br from-amber-50 to-white hover:shadow-lg transition-shadow">
+            <Card className="bg-gradient-to-br from-amber-50 to-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => toggleCardExpanded('priorityDeals')}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-amber-800">
-                  Priority Deals
+                <CardTitle className="text-sm font-medium text-amber-800 flex justify-between items-center">
+                  <span>Priority Deals</span>
+                  {expandedCard === 'priorityDeals' ? 
+                    <ChevronUp className="h-4 w-4" /> : 
+                    <ChevronDown className="h-4 w-4" />
+                  }
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-amber-900">{priorityDealsCount}</div>
                 <p className="text-xs text-amber-600 mt-1">Requiring immediate attention</p>
+                
+                <Collapsible open={expandedCard === 'priorityDeals'}>
+                  <CollapsibleContent className="pt-4">
+                    <div className="text-sm space-y-1">
+                      <p><span className="font-medium">Value at Risk:</span> ${priorityDeals.reduce((sum, deal) => sum + (parseFloat(deal.deal_amount) || 0), 0).toLocaleString()}</p>
+                      <p><span className="font-medium">Most Affected AE:</span> {
+                        Object.entries(priorityDeals.reduce((acc: Record<string, number>, deal) => {
+                          acc[deal.owner] = (acc[deal.owner] || 0) + 1;
+                          return acc;
+                        }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'
+                      }</p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-br from-green-50 to-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => toggleCardExpanded('upsellOps')}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-green-800 flex justify-between items-center">
+                  <span>Upsell Opportunities</span>
+                  {expandedCard === 'upsellOps' ? 
+                    <ChevronUp className="h-4 w-4" /> : 
+                    <ChevronDown className="h-4 w-4" />
+                  }
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-900">{upsellOpportunitiesData.total || 0}</div>
+                <p className="text-xs text-green-600 mt-1">Potential additional revenue</p>
+                
+                <Collapsible open={expandedCard === 'upsellOps'}>
+                  <CollapsibleContent className="pt-4">
+                    <div className="text-sm space-y-1">
+                      <p><span className="font-medium">High Confidence:</span> {upsellOpportunitiesData.high || 0}</p>
+                      <p><span className="font-medium">Success Rate:</span> {
+                        upsellOpportunitiesData.total ? 
+                          Math.round((upsellOpportunitiesData.high / upsellOpportunitiesData.total) * 100) : 
+                          0
+                      }%</p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </CardContent>
             </Card>
           </div>
           
-          {/* Priority Deals Section */}
+          {/* Priority Deals Section - Enhanced UI */}
           {priorityDeals.length > 0 && (
             <Card className="mb-6 border-amber-200 bg-gradient-to-br from-amber-50 to-white">
-              <CardHeader>
-                <CardTitle className="flex items-center text-amber-800">
-                  <span className="mr-2">High Priority Deals</span>
-                  <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">
-                    {priorityDeals.length}
-                  </Badge>
-                </CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center text-amber-800">
+                    <AlertTriangle className="h-5 w-5 mr-2 text-amber-600" />
+                    <span>High Priority Deals</span>
+                    <Badge variant="outline" className="ml-2 bg-amber-100 text-amber-800 border-amber-300">
+                      {priorityDeals.length}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="text-amber-700 mt-1">
+                    These deals require immediate attention from their respective AEs
+                  </CardDescription>
+                </div>
+                <Button variant="outline" className="bg-white border-amber-200 text-amber-800 hover:bg-amber-100">
+                  <ListCheck className="h-4 w-4 mr-2" />
+                  Assign Tasks
+                </Button>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border overflow-hidden">
+                <div className="rounded-md border border-amber-200 overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-amber-50/80">
@@ -653,6 +720,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                         <TableHead className="font-medium">Stage</TableHead>
                         <TableHead className="font-medium text-right">Amount</TableHead>
                         <TableHead className="font-medium">Owner</TableHead>
+                        <TableHead className="font-medium text-center">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -669,6 +737,11 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                             ${deal.deal_amount?.toLocaleString()}
                           </TableCell>
                           <TableCell>{deal.owner}</TableCell>
+                          <TableCell className="text-center">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Info className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -678,21 +751,22 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
             </Card>
           )}
 
-          {/* KPI Section from AEInsights */}
+          {/* KPI Section - Enhanced UI */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center">
                   <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <CheckCircle className="h-5 w-5 text-purple-600" />
                     <span className="font-medium">Total Deals</span>
                   </div>
                   <p className="text-3xl font-bold">{kpiData.totalDeals}</p>
+                  <p className="text-xs text-muted-foreground mt-1">across all pipeline stages</p>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center">
                   <div className="flex items-center gap-2 mb-2">
@@ -700,11 +774,12 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                     <span className="font-medium">Total Objections</span>
                   </div>
                   <p className="text-3xl font-bold">{kpiData.totalObjections}</p>
+                  <p className="text-xs text-muted-foreground mt-1">requiring resolution</p>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center">
                   <div className="flex items-center gap-2 mb-2">
@@ -712,11 +787,12 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                     <span className="font-medium">High Priority</span>
                   </div>
                   <p className="text-3xl font-bold">{kpiData.highPriorityActions}</p>
+                  <p className="text-xs text-muted-foreground mt-1">urgent actions required</p>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center">
                   <div className="flex items-center gap-2 mb-2">
@@ -724,32 +800,100 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                     <span className="font-medium">Successful Upsells</span>
                   </div>
                   <p className="text-3xl font-bold">{kpiData.successfulUpsells}</p>
+                  <p className="text-xs text-muted-foreground mt-1">high receptiveness opportunities</p>
                 </div>
               </CardContent>
             </Card>
           </div>
           
-          {/* Keep the existing tables */}
+          {/* Enhanced Table Sections with Search and Sort */}
           <div className="space-y-6 mb-6">
-            {/* Objection Resolution Performance */}
+            {/* Interactive Search and Filter Controls */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold">Team Performance</h3>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  {aeList.length} AEs
+                </Badge>
+              </div>
+              
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-2 w-full md:w-auto">
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search by AE name" 
+                    className="pl-9"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1"
+                  onClick={() => setShowCompleteAEList(!showCompleteAEList)}
+                >
+                  <Filter className="h-4 w-4" />
+                  {showCompleteAEList ? "Show Top Performers" : "Show All AEs"}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Objection Resolution Performance - Interactive Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Objection Resolution Performance</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-blue-600" />
+                  Objection Resolution Performance
+                </CardTitle>
+                <CardDescription>
+                  Track how effectively each AE addresses customer objections
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead className="w-[180px]">Account Executive</TableHead>
-                        <TableHead className="text-right">Resolved</TableHead>
-                        <TableHead className="text-right">Partially Resolved</TableHead>
-                        <TableHead className="text-right">Total Objections</TableHead>
-                        <TableHead className="text-right">Resolution Rate</TableHead>
+                        <TableHead 
+                          className="w-[180px] cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('name')}
+                        >
+                          Account Executive
+                          {getSortDirectionIndicator('name')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('resolvedObjections')}
+                        >
+                          Resolved
+                          {getSortDirectionIndicator('resolvedObjections')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('partiallyResolvedObjections')}
+                        >
+                          Partially Resolved
+                          {getSortDirectionIndicator('partiallyResolvedObjections')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('totalObjections')}
+                        >
+                          Total Objections
+                          {getSortDirectionIndicator('totalObjections')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('objectionResolutionRate')}
+                        >
+                          Resolution Rate
+                          {getSortDirectionIndicator('objectionResolutionRate')}
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {aePerformanceData.map((ae) => (
+                      {(showCompleteAEList ? sortedAEData : sortedAEData.slice(0, 5)).map((ae) => (
                         <TableRow key={ae.name} className="hover:bg-muted/30">
                           <TableCell className="font-medium">{ae.name}</TableCell>
                           <TableCell className="text-right">{ae.resolvedObjections}</TableCell>
@@ -768,28 +912,77 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                     </TableBody>
                   </Table>
                 </div>
+                {!showCompleteAEList && sortedAEData.length > 5 && (
+                  <div className="flex justify-center mt-4">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowCompleteAEList(true)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      Show All {sortedAEData.length} AEs
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Deal Stage Distribution */}
+            {/* Deal Stage Distribution - Enhanced Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Deal Stage Distribution by AE</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart2 className="h-5 w-5 text-blue-600" />
+                  Deal Stage Distribution by AE
+                </CardTitle>
+                <CardDescription>
+                  View the current pipeline distribution across team members
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead className="w-[180px]">Account Executive</TableHead>
-                        <TableHead className="text-right">Total Deals</TableHead>
-                        <TableHead className="text-right">Discovery</TableHead>
-                        <TableHead className="text-right">Qualification</TableHead>
-                        <TableHead className="text-right">Implementation</TableHead>
+                        <TableHead 
+                          className="w-[180px] cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('name')}
+                        >
+                          Account Executive
+                          {getSortDirectionIndicator('name')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('totalDeals')}
+                        >
+                          Total Deals
+                          {getSortDirectionIndicator('totalDeals')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('discoveryCount')}
+                        >
+                          Discovery
+                          {getSortDirectionIndicator('discoveryCount')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('qualificationCount')}
+                        >
+                          Qualification
+                          {getSortDirectionIndicator('qualificationCount')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('implementationCount')}
+                        >
+                          Implementation
+                          {getSortDirectionIndicator('implementationCount')}
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {aePerformanceData.map((ae) => (
+                      {(showCompleteAEList ? sortedAEData : sortedAEData.slice(0, 5)).map((ae) => (
                         <TableRow key={`stage-${ae.name}`} className="hover:bg-muted/30">
                           <TableCell className="font-medium">{ae.name}</TableCell>
                           <TableCell className="text-right font-semibold">{ae.totalDeals}</TableCell>
@@ -804,24 +997,54 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
               </CardContent>
             </Card>
 
-            {/* Upsell Performance */}
+            {/* Upsell Performance - Enhanced Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Upsell Performance by AE</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  Upsell Performance by AE
+                </CardTitle>
+                <CardDescription>
+                  Track additional revenue opportunities identified by your team
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead className="w-[180px]">Account Executive</TableHead>
-                        <TableHead className="text-right">Upsell Opportunities</TableHead>
-                        <TableHead className="text-right">Successful Upsells</TableHead>
-                        <TableHead className="text-right">Success Rate</TableHead>
+                        <TableHead 
+                          className="w-[180px] cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('name')}
+                        >
+                          Account Executive
+                          {getSortDirectionIndicator('name')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('upsellOpportunities')}
+                        >
+                          Opportunities
+                          {getSortDirectionIndicator('upsellOpportunities')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('successfulUpsells')}
+                        >
+                          Successful
+                          {getSortDirectionIndicator('successfulUpsells')}
+                        </TableHead>
+                        <TableHead 
+                          className="text-right cursor-pointer hover:bg-muted/70"
+                          onClick={() => requestSort('upsellSuccessRate')}
+                        >
+                          Success Rate
+                          {getSortDirectionIndicator('upsellSuccessRate')}
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {aePerformanceData.map((ae) => (
+                      {(showCompleteAEList ? sortedAEData : sortedAEData.slice(0, 5)).map((ae) => (
                         <TableRow key={`upsell-${ae.name}`} className="hover:bg-muted/30">
                           <TableCell className="font-medium">{ae.name}</TableCell>
                           <TableCell className="text-right">{ae.upsellOpportunities}</TableCell>
@@ -843,25 +1066,43 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
             </Card>
           </div>
           
-          {/* New Section: Charts from AEInsights */}
-          <Tabs defaultValue="signal-analysis" className="w-full mt-6">
-            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
-              <TabsTrigger value="signal-analysis">Signal Analysis</TabsTrigger>
-              <TabsTrigger value="deal-progression">Deal Progression</TabsTrigger>
-              <TabsTrigger value="objection-resolution">Objection Resolution</TabsTrigger>
-              <TabsTrigger value="action-center">Action Center</TabsTrigger>
-            </TabsList>
+          {/* Enhanced Charts Section with Tabs */}
+          <Tabs 
+            value={managerTab} 
+            onValueChange={setManagerTab} 
+            className="w-full mt-6"
+          >
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-4">Performance Analytics</h3>
+              <TabsList className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-1">
+                <TabsTrigger value="signal-analysis" className="gap-2">
+                  <ChartPie className="h-4 w-4" />
+                  Signal Analysis
+                </TabsTrigger>
+                <TabsTrigger value="objection-resolution" className="gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Objection Resolution
+                </TabsTrigger>
+                <TabsTrigger value="action-center" className="gap-2">
+                  <Flag className="h-4 w-4" />
+                  Action Center
+                </TabsTrigger>
+              </TabsList>
+            </div>
             
-            {/* Signal Analysis Tab */}
-            <TabsContent value="signal-analysis" className="space-y-6 mt-4">
+            {/* Signal Analysis Tab - Enhanced UI */}
+            <TabsContent value="signal-analysis" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Signal Type Distribution */}
-                <Card className="col-span-1">
+                <Card className="col-span-1 hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <ChartPie className="h-5 w-5" />
+                      <ChartPie className="h-5 w-5 text-purple-600" />
                       Signal Type Distribution
                     </CardTitle>
+                    <CardDescription>
+                      Breakdown of different signal types in your deals
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -881,19 +1122,22 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                           ))}
                         </Pie>
                         <Tooltip formatter={(value: number) => [value, 'Count']} />
-                        <Legend />
+                        <Legend layout="vertical" align="right" verticalAlign="middle" />
                       </PieChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
 
                 {/* Objection Types Distribution */}
-                <Card className="col-span-1">
+                <Card className="col-span-1 hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5" />
+                      <AlertCircle className="h-5 w-5 text-rose-500" />
                       Objection Types
                     </CardTitle>
+                    <CardDescription>
+                      Common objections raised across all deals
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -919,12 +1163,15 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                 </Card>
 
                 {/* Signal Confidence Gauge */}
-                <Card className="col-span-1">
+                <Card className="col-span-1 hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5" />
+                      <AlertCircle className="h-5 w-5 text-blue-600" />
                       Signal Confidence Distribution
                     </CardTitle>
+                    <CardDescription>
+                      Reliability levels of detected signals
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -938,6 +1185,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                           background
                           dataKey="value"
                           label={{ position: 'insideStart', fill: '#fff' }}
+                          cornerRadius={5}
                         />
                         <Legend 
                           iconSize={10} 
@@ -952,12 +1200,15 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                 </Card>
 
                 {/* Deal Value by Signal Heat Map (Simplified as Scatter) */}
-                <Card className="col-span-1">
+                <Card className="col-span-1 hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
+                      <TrendingUp className="h-5 w-5 text-green-600" />
                       Deal Value by Signal Type
                     </CardTitle>
+                    <CardDescription>
+                      Correlation between signal types and deal values
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -994,104 +1245,162 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
               </div>
             </TabsContent>
             
-            {/* Deal Progression Tab */}
-            <TabsContent value="deal-progression" className="space-y-6 mt-4">
-              <div className="grid grid-cols-1 gap-6">
-                {/* Deal Stage Distribution */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <ChartBar className="h-5 w-5" />
-                      Deal Progression Timeline
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={dealProgressionData}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis yAxisId="left" />
-                        <YAxis yAxisId="right" orientation="right" />
-                        <Tooltip />
-                        <Legend />
-                        <Bar yAxisId="left" dataKey="count" name="Number of Deals" fill="#8B5CF6" />
-                        <Bar yAxisId="right" dataKey="avgDays" name="Avg. Days in Stage" fill="#10B981" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                {/* Deal Timeline Explanation */}
-                <Alert className="bg-blue-50 border-blue-200 text-blue-800">
-                  <Info className="h-4 w-4 text-blue-600" />
-                  <AlertDescription className="text-blue-700">
-                    The chart above shows the distribution of deals across different stages and the average number of days 
-                    deals spend in each stage. This helps identify potential bottlenecks in the sales process.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            </TabsContent>
-            
-            {/* Objection Resolution Tab */}
-            <TabsContent value="objection-resolution" className="space-y-6 mt-4">
+            {/* Objection Resolution Tab - Enhanced UI */}
+            <TabsContent value="objection-resolution" className="space-y-6">
               <div className="grid grid-cols-1 gap-6">
                 {/* Objection Resolution Status */}
-                <Card>
+                <Card className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5" />
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
                       Objection Resolution Tracking
                     </CardTitle>
+                    <CardDescription>
+                      Current status of all customer objections
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={objectionResolutionData}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="value" name="Count" stroke="#8884d8" activeDot={{ r: 8 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="h-80 md:col-span-1">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={objectionResolutionData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            >
+                              {objectionResolutionData.map((entry, index) => (
+                                <Cell 
+                                  key={`cell-${index}`} 
+                                  fill={
+                                    entry.name === "Resolved" ? "#10B981" : 
+                                    entry.name === "Partially Resolved" ? "#F97316" :
+                                    entry.name === "In Progress" ? "#0EA5E9" : 
+                                    "#EF4444"
+                                  } 
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value: number) => [value, 'Count']} />
+                            <Legend layout="vertical" align="right" verticalAlign="middle" />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <Accordion type="single" collapsible className="w-full">
+                          <AccordionItem value="resolved-objections">
+                            <AccordionTrigger className="hover:bg-green-50 px-4 rounded-md">
+                              <div className="flex items-center gap-2">
+                                <Badge className="bg-green-500">Resolved</Badge>
+                                <span className="font-medium">
+                                  {objectionResolutionData.find(d => d.name === "Resolved")?.value || 0} Objections
+                                </span>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4">
+                              <p className="text-muted-foreground text-sm">
+                                These objections have been successfully addressed with customers. 
+                                Common resolution strategies include product demonstrations, 
+                                pricing adjustments, and feature explanations.
+                              </p>
+                              <div className="mt-4">
+                                <Button variant="outline" size="sm" className="text-green-700 border-green-200 bg-green-50">
+                                  View Resolution Strategies
+                                </Button>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                          
+                          <AccordionItem value="partial-objections">
+                            <AccordionTrigger className="hover:bg-amber-50 px-4 rounded-md">
+                              <div className="flex items-center gap-2">
+                                <Badge className="bg-amber-500">Partially Resolved</Badge>
+                                <span className="font-medium">
+                                  {objectionResolutionData.find(d => d.name === "Partially Resolved")?.value || 0} Objections
+                                </span>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4">
+                              <p className="text-muted-foreground text-sm">
+                                These objections have been partially addressed but may require 
+                                follow-up actions to fully resolve. Common next steps include 
+                                additional documentation, feature requests, or stakeholder meetings.
+                              </p>
+                              <div className="mt-4">
+                                <Button variant="outline" size="sm" className="text-amber-700 border-amber-200 bg-amber-50">
+                                  View Next Steps
+                                </Button>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                          
+                          <AccordionItem value="inprogress-objections">
+                            <AccordionTrigger className="hover:bg-blue-50 px-4 rounded-md">
+                              <div className="flex items-center gap-2">
+                                <Badge className="bg-blue-500">In Progress</Badge>
+                                <span className="font-medium">
+                                  {objectionResolutionData.find(d => d.name === "In Progress")?.value || 0} Objections
+                                </span>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4">
+                              <p className="text-muted-foreground text-sm">
+                                These objections are actively being worked on by the team. 
+                                Current efforts include customer calls, internal discussions, 
+                                and solution development.
+                              </p>
+                              <div className="mt-4">
+                                <Button variant="outline" size="sm" className="text-blue-700 border-blue-200 bg-blue-50">
+                                  View Action Items
+                                </Button>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                          
+                          <AccordionItem value="unresolved-objections">
+                            <AccordionTrigger className="hover:bg-red-50 px-4 rounded-md">
+                              <div className="flex items-center gap-2">
+                                <Badge className="bg-red-500">Not Resolved</Badge>
+                                <span className="font-medium">
+                                  {objectionResolutionData.find(d => d.name === "Not Resolved")?.value || 0} Objections
+                                </span>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4">
+                              <p className="text-muted-foreground text-sm">
+                                These objections remain unresolved and require attention. 
+                                Common blockers include complex technical limitations, 
+                                pricing constraints, or competitive disadvantages.
+                              </p>
+                              <div className="mt-4">
+                                <Button variant="outline" size="sm" className="text-red-700 border-red-200 bg-red-50">
+                                  View Critical Issues
+                                </Button>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-
-                {/* Resolution Status Summary */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {objectionResolutionData.map((item) => (
-                    <Card key={item.name}>
-                      <CardContent className="pt-6">
-                        <div className="flex flex-col items-center">
-                          <Badge className={`mb-2 ${
-                            item.name === "Resolved" ? "bg-green-500" : 
-                            item.name === "Partially Resolved" ? "bg-amber-500" :
-                            item.name === "In Progress" ? "bg-blue-500" : 
-                            "bg-red-500"
-                          }`}>
-                            {item.name}
-                          </Badge>
-                          <p className="text-3xl font-bold">{item.value}</p>
-                          <p className="text-sm text-muted-foreground">objections</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
                 
-                {/* Upsell Opportunities Summary */}
-                <Card>
+                {/* Upsell Opportunities Summary - Enhanced */}
+                <Card className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
+                      <TrendingUp className="h-5 w-5 text-green-600" />
                       Upsell Opportunities Analysis
                     </CardTitle>
+                    <CardDescription>
+                      Additional revenue potential from existing customers
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1151,21 +1460,40 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                         </Card>
                       </div>
                     </div>
+                    
+                    <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-transparent border border-green-100 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <ChevronUp className="h-5 w-5 text-green-600" />
+                        <h4 className="font-semibold text-green-800">Upsell Opportunity Insights</h4>
+                      </div>
+                      <p className="mt-2 text-sm text-green-700">
+                        Based on current data, there are {upsellOpportunitiesData.high} high-confidence upsell opportunities 
+                        worth pursuing. Focus on these accounts for immediate revenue impact.
+                      </p>
+                      <div className="mt-3">
+                        <Button variant="outline" size="sm" className="border-green-200 text-green-700 hover:bg-green-50">
+                          Generate Action Plan
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
             </TabsContent>
             
-            {/* Action Center Tab */}
-            <TabsContent value="action-center" className="space-y-6 mt-4">
+            {/* Action Center Tab - Enhanced UI */}
+            <TabsContent value="action-center" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Recommended Actions */}
-                <Card>
+                <Card className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5" />
+                      <CheckCircle className="h-5 w-5 text-blue-600" />
                       Recommended Actions
                     </CardTitle>
+                    <CardDescription>
+                      Distribution of action types across all deals
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -1185,17 +1513,27 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                   </CardContent>
                 </Card>
 
-                {/* Action Priority List */}
-                <Card>
+                {/* Action Priority List - Enhanced */}
+                <Card className="hover:shadow-md transition-shadow">
                   <CardHeader>
-                    <CardTitle>Priority Actions</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Flag className="h-5 w-5 text-amber-500" />
+                      Priority Actions
+                    </CardTitle>
+                    <CardDescription>
+                      Tasks that require immediate attention
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-80 overflow-auto">
+                  <CardContent className="h-80 overflow-auto pr-2">
                     <div className="space-y-4">
                       {actionCenterData.map((action) => (
                         <div 
                           key={action.name}
-                          className="p-4 border rounded-lg flex items-center justify-between"
+                          className={`p-4 border rounded-lg flex items-center justify-between ${
+                            action.value > 5 
+                              ? "border-amber-200 bg-gradient-to-r from-amber-50 to-white" 
+                              : "border-gray-200"
+                          }`}
                         >
                           <div>
                             <p className="font-medium">{action.name}</p>
@@ -1215,13 +1553,16 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                   </CardContent>
                 </Card>
                 
-                {/* Priority Actions Overview */}
-                <Card className="md:col-span-2">
+                {/* Priority Actions Overview - Enhanced */}
+                <Card className="md:col-span-2 hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Flag className="h-5 w-5" />
+                      <Flag className="h-5 w-5 text-rose-500" />
                       Priority Actions Overview
                     </CardTitle>
+                    <CardDescription>
+                      Summary of high-priority tasks requiring immediate attention
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1255,16 +1596,23 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                          <Card className="p-3 bg-gradient-to-br from-amber-50 to-white border border-amber-200">
                             <div className="text-amber-600 font-medium">High</div>
                             <div className="text-2xl font-bold">{priorityActionsData.high}</div>
                             <div className="text-xs text-amber-600">Urgent Actions</div>
-                          </div>
-                          <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-md">
+                          </Card>
+                          <Card className="p-3 bg-gradient-to-br from-yellow-50 to-white border border-yellow-100">
                             <div className="text-yellow-600 font-medium">Medium</div>
                             <div className="text-2xl font-bold">{priorityActionsData.medium}</div>
                             <div className="text-xs text-yellow-600">Scheduled Actions</div>
-                          </div>
+                          </Card>
+                        </div>
+                        
+                        <div className="mt-4">
+                          <Button className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600">
+                            <ListCheck className="h-4 w-4 mr-2" />
+                            Assign All Priority Actions
+                          </Button>
                         </div>
                       </div>
                     </div>
