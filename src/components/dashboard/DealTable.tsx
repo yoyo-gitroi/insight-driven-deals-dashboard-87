@@ -27,52 +27,58 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
-
+ 
   const handleTakeAction = async (deal: any) => {
-    // Set loading state
     setIsLoading(true);
-    
+    const controller = new AbortController();
+    const timeoutMs = 10 * 60 * 1000; // 10 minutes
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      // Prepare payload with sr_no (if exists) and company_name
       const payload = {
-        "s.no": deal.sr_no || null,
-        company: deal.company_name
+        company: deal.company_name,
       };
-      
-      // Make API call
-      const response = await fetch("https://aryabhatta-labs.app.n8n.cloud/webhook/e7290720-e974-4673-a659-7b8e107913e9", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-      
+      const response = await fetch(
+        "https://aryabhatta-labs.app.n8n.cloud/webhook/e7290720-e974-4673-a659-7b8e107913e9",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        }
+      );
+      clearTimeout(timeoutId);
       if (response.ok) {
-        // Show success toast
         toast({
           title: "Action Complete",
           description: `Action executed successfully for ${deal.company_name}`,
-          variant: "default"
+          variant: "default",
         });
       } else {
-        // Show error toast if response is not OK
         toast({
           title: "Action Failed",
-          description: "There was an error processing your request",
-          variant: "destructive"
+          description: `Received HTTP ${response.status} from server.`,
+          variant: "destructive",
         });
       }
-    } catch (error) {
-      // Show error toast for exceptions
-      toast({
-        title: "Error",
-        description: "Failed to execute action. Please try again.",
-        variant: "destructive"
-      });
-      console.error("API call error:", error);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === "AbortError") {
+        toast({
+          title: "Timeout",
+          description: "The request was aborted after waiting 10 minutes with no response.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Network Error",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+        console.error("API call error:", error);
+      }
     } finally {
-      // Reset loading state
       setIsLoading(false);
     }
   };
