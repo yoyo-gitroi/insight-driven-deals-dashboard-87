@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
@@ -27,7 +28,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileProcessed }) => {
           throw new Error("No sheet found in Excel file");
         }
         
-        // Process CRM data - ensure to preserve cell formatting for JSON data
+        // Process CRM data
         const crmSheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
           header: "A",
           raw: false
@@ -41,26 +42,12 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileProcessed }) => {
               .toLowerCase()
               .replace(/\s+/g, "_")
               .replace(/[^a-z0-9_]/g, "");
-            
             if (headerKey) {
-              // For NBA column, try to preserve the JSON structure
-              if (headerKey === "nba") {
-                try {
-                  // Try to parse as JSON first
-                  processedRow[headerKey] = JSON.parse(row[key]);
-                } catch (e) {
-                  // If parsing fails, keep as string
-                  processedRow[headerKey] = row[key];
-                }
-              } else {
-                processedRow[headerKey] = row[key];
-              }
+              processedRow[headerKey] = row[key];
             }
           });
           return processedRow;
         });
-        
-        console.log("Processed sheet data:", crmData.slice(0, 2)); // Log first two entries for debugging
         
         onFileProcessed(crmData);
         setIsLoading(false);

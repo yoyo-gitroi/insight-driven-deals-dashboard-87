@@ -21,7 +21,6 @@ type CRMData = {
   industry?: string;
   contact_title?: string;
   geo?: string;
-  execution_plan?: string;
 };
 
 const Dashboard = () => {
@@ -32,40 +31,13 @@ const Dashboard = () => {
 
   const handleFileProcessed = (crmSheet: any[]) => {
     if (crmSheet.length) {
-      // Process the data and extract execution_plan from nba
-      const processedCrmData = crmSheet.map(row => {
-        let executionPlan = "";
-        
-        // Try to extract execution_plan from the nba field
-        if (row.nba) {
-          try {
-            // First try parsing it as JSON
-            const nbaData = typeof row.nba === 'object' ? row.nba : JSON.parse(row.nba);
-            
-            // Check if the parsed data has nba_action.execution_plan structure
-            if (nbaData?.nba_action?.execution_plan) {
-              executionPlan = nbaData.nba_action.execution_plan;
-            }
-          } catch (e) {
-            console.error("Error parsing NBA data:", e);
-            // If JSON parsing fails, try to extract using regex as fallback
-            if (typeof row.nba === 'string') {
-              const match = row.nba.match(/"execution_plan"\s*:\s*"([^"]*)"/);
-              if (match && match[1]) {
-                executionPlan = match[1];
-              }
-            }
-          }
-        }
-
-        return {
-          ...row,
-          signals: typeof row.signals === 'string' ? row.signals : JSON.stringify(row.signals),
-          actions: typeof row.actions === 'string' ? row.actions : JSON.stringify(row.actions),
-          nba: typeof row.nba === 'string' ? row.nba : JSON.stringify(row.nba),
-          execution_plan: executionPlan
-        };
-      });
+      // Ensure JSON data is preserved as strings
+      const processedCrmData = crmSheet.map(row => ({
+        ...row,
+        signals: typeof row.signals === 'string' ? row.signals : JSON.stringify(row.signals),
+        actions: typeof row.actions === 'string' ? row.actions : JSON.stringify(row.actions),
+        nba: typeof row.nba === 'string' ? row.nba : JSON.stringify(row.nba)
+      }));
       
       setCrmData(processedCrmData);
       
@@ -74,8 +46,6 @@ const Dashboard = () => {
       setAeList(uniqueAEs);
       
       setFileUploaded(true);
-      
-      console.log("Processed CRM data with execution plans:", processedCrmData);
     } else {
       toast({
         title: "Error processing file",
