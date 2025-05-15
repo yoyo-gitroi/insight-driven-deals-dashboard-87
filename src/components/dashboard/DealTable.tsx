@@ -1,444 +1,259 @@
+
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Eye, ChevronLeft, ChevronRight, Loader } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Check, ArrowRight, ListCheck } from "lucide-react";
+import { safeJsonParse } from "@/lib/utils";
 
 interface DealTableProps {
   deals: any[];
 }
 
 const DealTable: React.FC<DealTableProps> = ({ deals }) => {
-  const [openDrawerId, setOpenDrawerId] = React.useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const itemsPerPage = 5;
+  const [selectedDeal, setSelectedDeal] = useState<any>(null);
+  const [displayMode, setDisplayMode] = useState<'list' | 'detail'>('list');
   
-  // Calculate pagination
-  const totalPages = Math.ceil(deals.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentDeals = deals.slice(startIndex, endIndex);
-  
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  const handleSelectDeal = (deal: any) => {
+    setSelectedDeal(deal);
+    setDisplayMode('detail');
   };
- 
-  const handleTakeAction = async (deal: any) => {
-    setIsLoading(true);
-    const controller = new AbortController();
-    const timeoutMs = 10 * 60 * 1000; // 10 minutes
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const payload = {
-        company: deal.company_name,
-      };
-      const response = await fetch(
-        "https://aryabhatta-labs.app.n8n.cloud/webhook/e7290720-e974-4673-a659-7b8e107913e9",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        }
-      );
-      clearTimeout(timeoutId);
-      if (response.ok) {
-        toast({
-          title: "Action Complete",
-          description: `Action executed successfully for ${deal.company_name}`,
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Action Failed",
-          description: `Received HTTP ${response.status} from server.`,
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === "AbortError") {
-        toast({
-          title: "Timeout",
-          description: "The request was aborted after waiting 10 minutes with no response.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Network Error",
-          description: "Something went wrong. Please try again.",
-          variant: "destructive",
-        });
-        console.error("API call error:", error);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+  
+  const handleBackToList = () => {
+    setDisplayMode('list');
+    setSelectedDeal(null);
+  };
+  
+  // Format currency amounts
+  const formatCurrency = (amount: number | string) => {
+    if (!amount) return "$0";
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(numAmount);
   };
 
-  const extractStructuredData = (deal: any) => {
+  // Format date strings
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+  };
+  
+  // Extract Next Best Actions data
+  const extractNextBestAction = (deal: any) => {
     try {
-      // Parse data if they are strings
-      let nbaData = deal.nba;
-      let signalData = deal.signals;
+      if (!deal.nba) return {};
       
-      if (typeof nbaData === 'string' && nbaData.trim()) {
-        try {
-          nbaData = JSON.parse(nbaData);
-        } catch (e) {
-          console.error("Error parsing NBA JSON:", e);
-        }
+      const nbaData = safeJsonParse(deal.nba, {});
+      
+      let actionVerb = '';
+      let actionSummary = '';
+      let priority = '';
+      let executionPlan = '';
+      
+      // Check if nba_action exists in the parsed data
+      if (nbaData.nba_action) {
+        actionVerb = nbaData.nba_action.action_verb || '';
+        actionSummary = nbaData.nba_action.action_summary || '';
+        priority = nbaData.nba_action.priority || '';
+        executionPlan = nbaData.nba_action.execution_plan || '';
       }
       
-      if (typeof signalData === 'string' && signalData.trim()) {
-        try {
-          signalData = JSON.parse(signalData);
-        } catch (e) {
-          console.error("Error parsing signals JSON:", e);
-        }
-      }
-      
-      // Extract action_summary from NBA
-      let actionSummary = null;
-      
-      if (nbaData && nbaData.nba_action) {
-        actionSummary = nbaData.nba_action.action_summary;
-      }
-      
-      // Find signal with highest confidence
-      let highestConfidenceSignal = null;
-      if (signalData && signalData.signals && Array.isArray(signalData.signals)) {
-        // Sort signals by confidence (descending)
-        const sortedSignals = [...signalData.signals].sort((a, b) => {
-          const confA = a.confidence || 0;
-          const confB = b.confidence || 0;
-          return confB - confA;
-        });
-        
-        // Get the signal with highest confidence
-        if (sortedSignals.length > 0) {
-          highestConfidenceSignal = sortedSignals[0];
-        }
-      }
-      
-      // Get signal information
-      let signalType = null;
-      let confidence = null;
-      let supportingQuote = null;
-      
-      if (highestConfidenceSignal) {
-        signalType = highestConfidenceSignal.signal_type;
-        confidence = highestConfidenceSignal.confidence;
-        supportingQuote = highestConfidenceSignal.supporting_quote;
-        
-        // If objection_analysis exists, use it for more detailed info
-        if (highestConfidenceSignal.objection_analysis) {
-          confidence = highestConfidenceSignal.objection_analysis.confidence_in_resolution || confidence;
-          supportingQuote = highestConfidenceSignal.objection_analysis.objection_quote || supportingQuote;
-        } else if (highestConfidenceSignal.persona_misalignment) {
-          confidence = highestConfidenceSignal.persona_misalignment.confidence || confidence;
-          supportingQuote = highestConfidenceSignal.persona_misalignment.supporting_quote || supportingQuote;
-        } else if (highestConfidenceSignal.churn_risk) {
-          confidence = highestConfidenceSignal.churn_risk.confidence || confidence;
-          supportingQuote = highestConfidenceSignal.churn_risk.supporting_quote || supportingQuote;
-        }
+      // Use the execution_plan field if it was pre-extracted
+      if (deal.execution_plan) {
+        executionPlan = deal.execution_plan;
       }
       
       return {
-        nba: actionSummary || (typeof nbaData === 'string' ? nbaData : JSON.stringify(nbaData)),
-        signal: {
-          signal_type: signalType,
-          confidence: confidence,
-          supporting_quote: supportingQuote
-        },
-        rawData: {
-          nba: nbaData,
-          signals: signalData
-        }
+        actionVerb,
+        actionSummary, 
+        priority,
+        executionPlan
       };
-    } catch (error) {
-      console.error("Error extracting structured data:", error);
-      return {
-        nba: deal.nba,
-        signal: null,
-        rawData: {
-          nba: deal.nba,
-          signals: deal.signals
-        }
-      };
+    } catch (e) {
+      console.error("Error parsing NBA data:", e);
+      return { actionVerb: '', actionSummary: '', priority: '', executionPlan: '' };
     }
   };
-
-  const getSignalBadge = (signal: any) => {
-    if (!signal || !signal.signal_type) return null;
+  
+  // Render the deal detail view
+  const renderDealDetail = () => {
+    if (!selectedDeal) return null;
     
-    // Determine badge color based on signal type
-    let badgeColor = "bg-gray-500";
-    let signalType = signal.signal_type || "";
-    
-    // Don't strip the signal type delimiter anymore - show full signal type
-    let displaySignalType = signalType;
-    
-    if (signalType.toLowerCase().includes('integration')) {
-      badgeColor = "bg-amber-500";
-    } else if (signalType.toLowerCase().includes('persona') || signalType.toLowerCase().includes('mismatch')) {
-      badgeColor = "bg-blue-500";
-    } else if (signalType.toLowerCase().includes('product') || signalType.toLowerCase().includes('fit')) {
-      badgeColor = "bg-emerald-500";
-    } else if (signalType.toLowerCase().includes('objection') || signalType.toLowerCase().includes('churn')) {
-      badgeColor = "bg-red-500";
-    } else if (signalType.toLowerCase().includes('pricing') || signalType.toLowerCase().includes('roi')) {
-      badgeColor = "bg-violet-500";
-    } else if (signalType.toLowerCase().includes('confusion')) {
-      badgeColor = "bg-orange-500";
-    } else if (signalType.toLowerCase().includes('expansion')) {
-      badgeColor = "bg-green-600";
-    }
+    const { actionVerb, actionSummary, priority, executionPlan } = extractNextBestAction(selectedDeal);
     
     return (
-      <HoverCard>
-        <HoverCardTrigger asChild>
-          <Badge className={`${badgeColor} cursor-pointer`}>
-            {displaySignalType}
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Button variant="outline" onClick={handleBackToList} className="mb-4">
+            <ArrowRight className="mr-2 h-4 w-4 rotate-180" />
+            Back to Deals
+          </Button>
+          
+          <Badge variant={priority === 'high' ? 'destructive' : priority === 'medium' ? 'default' : 'outline'}>
+            {priority ? `${priority.charAt(0).toUpperCase() + priority.slice(1)} Priority` : 'No Priority Set'}
           </Badge>
-        </HoverCardTrigger>
-        <HoverCardContent className="w-80 z-50">
-          <div className="space-y-2">
-            <h4 className="font-semibold">Signal Details</h4>
-            <div className="grid grid-cols-[auto_1fr] gap-2">
-              <span className="font-medium">Type:</span>
-              <span>{signalType}</span>
-              <span className="font-medium">Confidence:</span>
-              <span>{signal.confidence || "N/A"}%</span>
-              <span className="font-medium">Supporting Quote:</span>
-              <p className="text-sm italic">"{signal.supporting_quote || "Not available"}"</p>
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">{selectedDeal.company_name}</CardTitle>
+            <CardDescription>
+              {selectedDeal.deal_name} - {formatCurrency(selectedDeal.deal_amount)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Owner</p>
+                <p>{selectedDeal.owner}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Close Date</p>
+                <p>{formatDate(selectedDeal.close_date)}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Deal Stage</p>
+                <p>{selectedDeal.deal_stage}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Company Size</p>
+                <p>{selectedDeal.size}</p>
+              </div>
             </div>
-          </div>
-        </HoverCardContent>
-      </HoverCard>
+          </CardContent>
+        </Card>
+        
+        <Tabs defaultValue="playbook">
+          <TabsList className="w-full">
+            <TabsTrigger value="playbook" className="flex-1">Playbook</TabsTrigger>
+            <TabsTrigger value="signals" className="flex-1">Signals</TabsTrigger>
+            <TabsTrigger value="actions" className="flex-1">Actions</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="playbook" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Next Best Action</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {actionVerb && (
+                  <div className="mb-4">
+                    <h4 className="font-medium">Action</h4>
+                    <p className="text-sm mt-1">{actionVerb}</p>
+                  </div>
+                )}
+                
+                {actionSummary && (
+                  <div className="mb-4">
+                    <h4 className="font-medium">Summary</h4>
+                    <p className="text-sm mt-1">{actionSummary}</p>
+                  </div>
+                )}
+                
+                {executionPlan && (
+                  <div>
+                    <h4 className="font-medium flex items-center">
+                      <ListCheck className="mr-2 h-4 w-4" />
+                      Execution Plan
+                    </h4>
+                    <div className="bg-secondary/30 p-3 rounded-md mt-2">
+                      <p className="text-sm whitespace-pre-wrap">{executionPlan}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {!actionVerb && !actionSummary && !executionPlan && (
+                  <p className="text-muted-foreground italic">No next best action available</p>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Additional cards for other playbook elements can go here */}
+          </TabsContent>
+          
+          <TabsContent value="signals">
+            {/* Signal content would go here */}
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm">Signal analysis data would be displayed here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="actions">
+            {/* Action content would go here */}
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm">Action tracking data would be displayed here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     );
   };
-
-  // Format NBA text to make it more readable - now displays the full text
-  const formatNBA = (nbaText: string) => {
-    if (!nbaText) return "No action available";
-    
-    try {
-      // If it's a JSON string, try to parse it
-      if (typeof nbaText === 'string' && (nbaText.startsWith('{') || nbaText.startsWith('['))) {
-        const parsed = JSON.parse(nbaText);
-        if (parsed && typeof parsed === 'object') {
-          if (parsed.nba_action && parsed.nba_action.action_summary) {
-            return parsed.nba_action.action_summary;
-          }
-        }
-      }
-      
-      // Return the full text without truncation
-      return nbaText;
-    } catch (e) {
-      console.error("Error formatting NBA:", e);
-      return nbaText;
-    }
-  };
   
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
+  // Render the deals list view
+  const renderDealsList = () => {
+    if (deals.length === 0) {
+      return <p>No deals found.</p>;
+    }
     
     return (
-      <Pagination className="mt-4">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious 
-              onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-            />
-          </PaginationItem>
-          
-          {/* Generate page numbers */}
-          {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
-            // Logic to show pages around current page
-            let pageNum;
-            
-            if (totalPages <= 5) {
-              // If 5 or fewer pages, show all
-              pageNum = i + 1;
-            } else if (currentPage <= 3) {
-              // If near the start, show first 5 pages
-              pageNum = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              // If near the end, show last 5 pages
-              pageNum = totalPages - 4 + i;
-            } else {
-              // Otherwise show 2 pages before and 2 pages after current
-              pageNum = currentPage - 2 + i;
-            }
-            
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Company</TableHead>
+            <TableHead>Deal</TableHead>
+            <TableHead>Owner</TableHead>
+            <TableHead>Stage</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Next Best Action</TableHead>
+            <TableHead>Close Date</TableHead>
+            <TableHead></TableHead> {/* For View button */}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {deals.map((deal, index) => {
+            const { actionVerb, priority } = extractNextBestAction(deal);
             return (
-              <PaginationItem key={pageNum}>
-                <PaginationLink 
-                  isActive={currentPage === pageNum}
-                  onClick={() => handlePageChange(pageNum)}
-                >
-                  {pageNum}
-                </PaginationLink>
-              </PaginationItem>
+              <TableRow key={index}>
+                <TableCell className="font-medium">{deal.company_name}</TableCell>
+                <TableCell>{deal.deal_name}</TableCell>
+                <TableCell>{deal.owner}</TableCell>
+                <TableCell>{deal.deal_stage}</TableCell>
+                <TableCell>{formatCurrency(deal.deal_amount)}</TableCell>
+                <TableCell>
+                  {actionVerb ? (
+                    <div className="flex items-center gap-2">
+                      <Badge variant={priority === 'high' ? 'destructive' : priority === 'medium' ? 'default' : 'outline'}>
+                        {actionVerb}
+                      </Badge>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">None</span>
+                  )}
+                </TableCell>
+                <TableCell>{formatDate(deal.close_date)}</TableCell>
+                <TableCell>
+                  <Button size="sm" variant="outline" onClick={() => handleSelectDeal(deal)}>
+                    View
+                  </Button>
+                </TableCell>
+              </TableRow>
             );
           })}
-          
-          <PaginationItem>
-            <PaginationNext 
-              onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
-              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+        </TableBody>
+      </Table>
     );
   };
   
   return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Company</TableHead>
-              <TableHead>Deal Name</TableHead>
-              <TableHead>Deal Stage</TableHead>
-              <TableHead>Signal</TableHead>
-              <TableHead>Next Best Action</TableHead>
-              <TableHead className="text-right">Details</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {currentDeals.length > 0 ? (
-              currentDeals.map((deal, index) => {
-                const { nba, signal } = extractStructuredData(deal);
-                const actualIndex = startIndex + index;
-                
-                return (
-                  <TableRow key={actualIndex}>
-                    <TableCell className="font-medium">{deal.company_name}</TableCell>
-                    <TableCell>{deal.deal_name}</TableCell>
-                    <TableCell>{deal.deal_stage}</TableCell>
-                    <TableCell>
-                      {signal && getSignalBadge(signal)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm bg-slate-50 p-2 rounded-md max-h-24 overflow-y-auto">
-                        {formatNBA(nba)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setOpenDrawerId(actualIndex)}
-                        className="inline-flex items-center justify-center"
-                      >
-                        <Eye className="h-4 w-4 mr-1" /> View
-                      </Button>
-                      
-                      <Drawer open={openDrawerId === actualIndex} onOpenChange={(open) => {
-                        if (!open) setOpenDrawerId(null);
-                      }}>
-                        <DrawerContent className="max-w-lg mx-auto">
-                          <div className="mx-auto w-full max-w-lg">
-                            <DrawerHeader>
-                              <DrawerTitle className="text-xl">{deal.company_name}</DrawerTitle>
-                              <DrawerDescription>{deal.deal_name} - {deal.deal_stage}</DrawerDescription>
-                            </DrawerHeader>
-                            
-                            <div className="p-6 space-y-6">
-                              {(() => {
-                                const extracted = extractStructuredData(deal);
-                                return (
-                                  <>
-                                    {extracted.nba && (
-                                      <div className="space-y-2">
-                                        <h3 className="text-lg font-semibold">Next Best Action</h3>
-                                        <div className="bg-slate-50 p-4 rounded-md">
-                                          <p>{formatNBA(extracted.nba)}</p>
-                                        </div>
-                                      </div>
-                                    )}
-                                    
-                                    {extracted.signal && (
-                                      <div className="space-y-2">
-                                        <h3 className="text-lg font-semibold">Signal Details</h3>
-                                        <div className="bg-slate-50 p-4 rounded-md space-y-3">
-                                          {extracted.signal.signal_type && (
-                                            <div>
-                                              <span className="font-medium">Signal Type:</span> {extracted.signal.signal_type}
-                                            </div>
-                                          )}
-                                          
-                                          {extracted.signal.confidence && (
-                                            <div>
-                                              <span className="font-medium">Confidence:</span> {extracted.signal.confidence}%
-                                            </div>
-                                          )}
-                                          
-                                          {extracted.signal.supporting_quote && (
-                                            <div>
-                                              <span className="font-medium">Supporting Quote:</span>
-                                              <p className="italic text-sm mt-1 pl-2 border-l-2 border-gray-300">
-                                                "{extracted.signal.supporting_quote}"
-                                              </p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                            
-                            <DrawerFooter>
-                              <Button 
-                                className="w-full bg-indigo-600 hover:bg-indigo-700"
-                                onClick={() => handleTakeAction(deal)}
-                                disabled={isLoading}
-                              >
-                                {isLoading ? (
-                                  <>
-                                    <Loader className="h-4 w-4 mr-2 animate-spin" />
-                                    PROCESSING...
-                                  </>
-                                ) : (
-                                  "TAKE ACTION"
-                                )}
-                              </Button>
-                            </DrawerFooter>
-                          </div>
-                        </DrawerContent>
-                      </Drawer>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  No deals found. Select an Account Executive or ensure data is loaded correctly.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      
-      {/* Pagination component */}
-      {renderPagination()}
+    <div>
+      {displayMode === 'list' ? renderDealsList() : renderDealDetail()}
     </div>
   );
 };
