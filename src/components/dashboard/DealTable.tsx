@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -27,75 +26,11 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
     setCurrentPage(page);
   };
 
-  // Helper function to safely parse JSON data
-  const safeJsonParse = (jsonString: string, defaultValue: any = {}) => {
-    if (!jsonString) return defaultValue;
-    
-    try {
-      if (typeof jsonString === 'object') return jsonString;
-      return JSON.parse(jsonString);
-    } catch (e) {
-      console.error("Error parsing JSON:", e);
-      return defaultValue;
-    }
-  };
-
-  // Extract the signal data by matching signal_id with action_reference_id
-  const extractSignalByActionReference = (deal: any) => {
-    try {
-      const nbaData = safeJsonParse(deal.nba);
-      const signalsData = safeJsonParse(deal.signals);
-      
-      // Extract action_reference_id from NBA
-      const actionReferenceId = nbaData?.nba_action?.action_reference_id;
-      
-      if (!actionReferenceId || !signalsData) {
-        console.log("Missing action_reference_id or signals data");
-        return null;
-      }
-      
-      console.log("Action Reference ID:", actionReferenceId);
-      console.log("Signals Data:", signalsData);
-      
-      // Find matching signal
-      let matchingSignal = null;
-      
-      // Check if signalsData is an array with signals property
-      if (signalsData.signals && Array.isArray(signalsData.signals)) {
-        matchingSignal = signalsData.signals.find((signal: any) => 
-          signal.signal_id === actionReferenceId
-        );
-      }
-      // Check if signalsData is a direct array
-      else if (Array.isArray(signalsData)) {
-        matchingSignal = signalsData.find((signal: any) => 
-          signal.signal_id === actionReferenceId
-        );
-      }
-      // Check if signalsData is a single signal object
-      else if (signalsData.signal_id) {
-        if (signalsData.signal_id === actionReferenceId) {
-          matchingSignal = signalsData;
-        }
-      }
-      
-      if (matchingSignal) {
-        console.log("Found matching signal:", matchingSignal);
-      } else {
-        console.log("No matching signal found");
-      }
-      
-      return matchingSignal;
-    } catch (error) {
-      console.error("Error extracting signal by action reference:", error);
-      return null;
-    }
-  };
-
   const extractStructuredData = (deal: any) => {
     try {
       // Parse data if they are strings
       let nbaData = deal.nba;
+      let signalData = deal.signals;
       
       if (typeof nbaData === 'string' && nbaData.trim()) {
         try {
@@ -105,21 +40,70 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
         }
       }
       
-      // Extract action_summary from NBA
-      let executionPlan = null;
-      
-      if (nbaData && nbaData.nba_action) {
-        executionPlan = nbaData.nba_action.execution_plan;
+      if (typeof signalData === 'string' && signalData.trim()) {
+        try {
+          signalData = JSON.parse(signalData);
+        } catch (e) {
+          console.error("Error parsing signals JSON:", e);
+        }
       }
       
-      // Extract signal data using the action_reference_id
-      const signalData = extractSignalByActionReference(deal);
+      // Extract action_summary from NBA
+      let actionSummary = null;
+      
+      if (nbaData && nbaData.nba_action) {
+        actionSummary = nbaData.nba_action.action_summary;
+      }
+      
+      // Find signal with highest confidence
+      let highestConfidenceSignal = null;
+      if (signalData && signalData.signals && Array.isArray(signalData.signals)) {
+        // Sort signals by confidence (descending)
+        const sortedSignals = [...signalData.signals].sort((a, b) => {
+          const confA = a.confidence || 0;
+          const confB = b.confidence || 0;
+          return confB - confA;
+        });
+        
+        // Get the signal with highest confidence
+        if (sortedSignals.length > 0) {
+          highestConfidenceSignal = sortedSignals[0];
+        }
+      }
+      
+      // Get signal information
+      let signalType = null;
+      let confidence = null;
+      let supportingQuote = null;
+      
+      if (highestConfidenceSignal) {
+        signalType = highestConfidenceSignal.signal_type;
+        confidence = highestConfidenceSignal.confidence;
+        supportingQuote = highestConfidenceSignal.supporting_quote;
+        
+        // If objection_analysis exists, use it for more detailed info
+        if (highestConfidenceSignal.objection_analysis) {
+          confidence = highestConfidenceSignal.objection_analysis.confidence_in_resolution || confidence;
+          supportingQuote = highestConfidenceSignal.objection_analysis.objection_quote || supportingQuote;
+        } else if (highestConfidenceSignal.persona_misalignment) {
+          confidence = highestConfidenceSignal.persona_misalignment.confidence || confidence;
+          supportingQuote = highestConfidenceSignal.persona_misalignment.supporting_quote || supportingQuote;
+        } else if (highestConfidenceSignal.churn_risk) {
+          confidence = highestConfidenceSignal.churn_risk.confidence || confidence;
+          supportingQuote = highestConfidenceSignal.churn_risk.supporting_quote || supportingQuote;
+        }
+      }
       
       return {
-        nba: executionPlan || (typeof nbaData === 'string' ? nbaData : JSON.stringify(nbaData)),
-        signal: signalData,
+        nba: actionSummary || (typeof nbaData === 'string' ? nbaData : JSON.stringify(nbaData)),
+        signal: {
+          signal_type: signalType,
+          confidence: confidence,
+          supporting_quote: supportingQuote
+        },
         rawData: {
-          nba: nbaData
+          nba: nbaData,
+          signals: signalData
         }
       };
     } catch (error) {
@@ -128,52 +112,44 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
         nba: deal.nba,
         signal: null,
         rawData: {
-          nba: deal.nba
+          nba: deal.nba,
+          signals: deal.signals
         }
       };
     }
   };
 
   const getSignalBadge = (signal: any) => {
-    if (!signal || !signal.signal_type) {
-      console.log("No signal type found");
-      return null;
-    }
+    if (!signal || !signal.signal_type) return null;
     
     // Determine badge color based on signal type
     let badgeColor = "bg-gray-500";
     let signalType = signal.signal_type || "";
     
-    console.log("Signal type for badge:", signalType);
+    // Don't strip the signal type delimiter anymore - show full signal type
+    let displaySignalType = signalType;
     
-    // Extract the Noun Category from [Noun Category]::[Specific Signal]
-    const nounCategory = signalType.split("::")[0]?.replace("[", "").replace("]", "").trim();
-    console.log("Extracted noun category:", nounCategory);
-    
-    // Set color based on noun category
-    if (nounCategory?.toLowerCase() === 'objection') {
-      badgeColor = "bg-red-200 text-red-800"; // Light red for Objection
-    } else if (nounCategory?.toLowerCase() === 'confusion') {
-      badgeColor = "bg-yellow-200 text-yellow-800"; // Yellow for Confusion
-    } else if (nounCategory?.toLowerCase() === 'expansion') {
-      badgeColor = "bg-green-200 text-green-800"; // Green for Expansion
-    } else if (nounCategory?.toLowerCase() === 'churn') {
-      badgeColor = "bg-pink-200 text-pink-800"; // Pink for Churn
-    } else if (nounCategory?.toLowerCase().includes('integration')) {
+    if (signalType.toLowerCase().includes('integration')) {
       badgeColor = "bg-amber-500";
-    } else if (nounCategory?.toLowerCase().includes('persona') || nounCategory?.toLowerCase().includes('mismatch')) {
+    } else if (signalType.toLowerCase().includes('persona') || signalType.toLowerCase().includes('mismatch')) {
       badgeColor = "bg-blue-500";
-    } else if (nounCategory?.toLowerCase().includes('product') || nounCategory?.toLowerCase().includes('fit')) {
+    } else if (signalType.toLowerCase().includes('product') || signalType.toLowerCase().includes('fit')) {
       badgeColor = "bg-emerald-500";
-    } else if (nounCategory?.toLowerCase().includes('pricing') || nounCategory?.toLowerCase().includes('roi')) {
+    } else if (signalType.toLowerCase().includes('objection') || signalType.toLowerCase().includes('churn')) {
+      badgeColor = "bg-red-500";
+    } else if (signalType.toLowerCase().includes('pricing') || signalType.toLowerCase().includes('roi')) {
       badgeColor = "bg-violet-500";
+    } else if (signalType.toLowerCase().includes('confusion')) {
+      badgeColor = "bg-orange-500";
+    } else if (signalType.toLowerCase().includes('expansion')) {
+      badgeColor = "bg-green-600";
     }
     
     return (
       <HoverCard>
         <HoverCardTrigger asChild>
           <Badge className={`${badgeColor} cursor-pointer`}>
-            {signalType}
+            {displaySignalType}
           </Badge>
         </HoverCardTrigger>
         <HoverCardContent className="w-80 z-50">
@@ -193,22 +169,22 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
     );
   };
 
-  // Format NBA text to show the execution_plan
+  // Format NBA text to make it more readable - now displays the full text
   const formatNBA = (nbaText: string) => {
-    if (!nbaText) return "No execution plan available";
+    if (!nbaText) return "No action available";
     
     try {
       // If it's a JSON string, try to parse it
       if (typeof nbaText === 'string' && (nbaText.startsWith('{') || nbaText.startsWith('['))) {
         const parsed = JSON.parse(nbaText);
         if (parsed && typeof parsed === 'object') {
-          if (parsed.nba_action && parsed.nba_action.execution_plan) {
-            return parsed.nba_action.execution_plan;
+          if (parsed.nba_action && parsed.nba_action.action_summary) {
+            return parsed.nba_action.action_summary;
           }
         }
       }
       
-      // Return the text as is if it's already the execution plan
+      // Return the full text without truncation
       return nbaText;
     } catch (e) {
       console.error("Error formatting NBA:", e);
@@ -297,10 +273,10 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                     <TableCell>{deal.deal_name}</TableCell>
                     <TableCell>{deal.deal_stage}</TableCell>
                     <TableCell>
-                      {signal ? getSignalBadge(signal) : <Badge className="bg-gray-300">No Signal</Badge>}
+                      {signal && getSignalBadge(signal)}
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm bg-slate-50 p-2 rounded-md max-h-none overflow-y-auto">
+                      <div className="text-sm bg-slate-50 p-2 rounded-md max-h-24 overflow-y-auto">
                         {formatNBA(nba)}
                       </div>
                     </TableCell>

@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import AEDashboard from "@/components/dashboard/AEDashboard";
 import FileUploader from "@/components/dashboard/FileUploader";
 import { Card, CardContent } from "@/components/ui/card";
+import ObjectionCharts from "@/components/dashboard/ObjectionCharts";
 
 type CRMData = {
   sr_no: number;
@@ -67,12 +68,17 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       ) : (
-        <AEDashboard 
-          crmData={crmData}
-          aeList={aeList}
-          selectedAE={selectedAE}
-          setSelectedAE={setSelectedAE}
-        />
+        <>
+          <AEDashboard 
+            crmData={crmData}
+            aeList={aeList}
+            selectedAE={selectedAE}
+            setSelectedAE={setSelectedAE}
+          />
+          <div className="mt-8">
+            <ObjectionCharts crmData={crmData} />
+          </div>
+        </>
       )}
     </div>
   );
