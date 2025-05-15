@@ -729,120 +729,6 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
             </Card>
           </div>
           
-          {/* Keep the existing tables */}
-          <div className="space-y-6 mb-6">
-            {/* Objection Resolution Performance */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Objection Resolution Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="w-[180px]">Account Executive</TableHead>
-                        <TableHead className="text-right">Resolved</TableHead>
-                        <TableHead className="text-right">Partially Resolved</TableHead>
-                        <TableHead className="text-right">Total Objections</TableHead>
-                        <TableHead className="text-right">Resolution Rate</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {aePerformanceData.map((ae) => (
-                        <TableRow key={ae.name} className="hover:bg-muted/30">
-                          <TableCell className="font-medium">{ae.name}</TableCell>
-                          <TableCell className="text-right">{ae.resolvedObjections}</TableCell>
-                          <TableCell className="text-right">{ae.partiallyResolvedObjections}</TableCell>
-                          <TableCell className="text-right">{ae.totalObjections}</TableCell>
-                          <TableCell className="text-right">
-                            <Badge 
-                              variant={Number(ae.objectionResolutionRate) > 70 ? "default" : 
-                                     Number(ae.objectionResolutionRate) > 40 ? "outline" : "destructive"}
-                            >
-                              {ae.objectionResolutionRate}%
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Deal Stage Distribution */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Deal Stage Distribution by AE</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="w-[180px]">Account Executive</TableHead>
-                        <TableHead className="text-right">Total Deals</TableHead>
-                        <TableHead className="text-right">Discovery</TableHead>
-                        <TableHead className="text-right">Qualification</TableHead>
-                        <TableHead className="text-right">Implementation</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {aePerformanceData.map((ae) => (
-                        <TableRow key={`stage-${ae.name}`} className="hover:bg-muted/30">
-                          <TableCell className="font-medium">{ae.name}</TableCell>
-                          <TableCell className="text-right font-semibold">{ae.totalDeals}</TableCell>
-                          <TableCell className="text-right">{ae.discoveryCount}</TableCell>
-                          <TableCell className="text-right">{ae.qualificationCount}</TableCell>
-                          <TableCell className="text-right">{ae.implementationCount}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Upsell Performance */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Upsell Performance by AE</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="w-[180px]">Account Executive</TableHead>
-                        <TableHead className="text-right">Upsell Opportunities</TableHead>
-                        <TableHead className="text-right">Successful Upsells</TableHead>
-                        <TableHead className="text-right">Success Rate</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {aePerformanceData.map((ae) => (
-                        <TableRow key={`upsell-${ae.name}`} className="hover:bg-muted/30">
-                          <TableCell className="font-medium">{ae.name}</TableCell>
-                          <TableCell className="text-right">{ae.upsellOpportunities}</TableCell>
-                          <TableCell className="text-right">{ae.successfulUpsells}</TableCell>
-                          <TableCell className="text-right">
-                            <Badge 
-                              variant={Number(ae.upsellSuccessRate) > 70 ? "default" : 
-                                     Number(ae.upsellSuccessRate) > 40 ? "outline" : "destructive"}
-                            >
-                              {ae.upsellSuccessRate}%
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
           {/* New Section: Charts from AEInsights */}
           <Tabs defaultValue="signal-analysis" className="w-full mt-6">
             <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
@@ -850,6 +736,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
               <TabsTrigger value="deal-progression">Deal Progression</TabsTrigger>
               <TabsTrigger value="objection-resolution">Objection Resolution</TabsTrigger>
               <TabsTrigger value="action-center">Action Center</TabsTrigger>
+              <TabsTrigger value="objection-analysis">Objection Analysis</TabsTrigger>
             </TabsList>
             
             {/* Signal Analysis Tab */}
