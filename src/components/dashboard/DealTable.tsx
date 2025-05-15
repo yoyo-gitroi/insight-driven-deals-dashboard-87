@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -113,13 +114,13 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
     if (!signal || !signal.signal_type) return null;
     
     // Determine badge color based on Noun Category
-    let badgeColor = "bg-gray-500";
+    let badgeColor = "bg-gray-200 text-gray-800"; // Default color
     let signalType = signal.signal_type || "";
     
     // Parse the Noun Category from [Noun Category]::[Specific Signal]
     const nounCategory = signalType.split('::')[0]?.replace('[', '').replace(']', '').trim();
     
-    // Set colors based on Noun Category
+    // Set colors based on Noun Category as specified
     switch (nounCategory.toLowerCase()) {
       case 'objection':
         badgeColor = "bg-red-200 text-red-800"; // Light red color
