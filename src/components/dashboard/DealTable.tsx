@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, ChevronLeft, ChevronRight, Loader } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface DealTableProps {
@@ -14,6 +15,7 @@ interface DealTableProps {
 const DealTable: React.FC<DealTableProps> = ({ deals }) => {
   const [openDrawerId, setOpenDrawerId] = React.useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const itemsPerPage = 5;
   
   // Calculate pagination
@@ -24,6 +26,55 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
   
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleTakeAction = async (deal: any) => {
+    // Set loading state
+    setIsLoading(true);
+    
+    try {
+      // Prepare payload with sr_no (if exists) and company_name
+      const payload = {
+        "s.no": deal.sr_no || null,
+        company: deal.company_name
+      };
+      
+      // Make API call
+      const response = await fetch("https://aryabhatta-labs.app.n8n.cloud/webhook/e7290720-e974-4673-a659-7b8e107913e9", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (response.ok) {
+        // Show success toast
+        toast({
+          title: "Action Complete",
+          description: `Action executed successfully for ${deal.company_name}`,
+          variant: "default"
+        });
+      } else {
+        // Show error toast if response is not OK
+        toast({
+          title: "Action Failed",
+          description: "There was an error processing your request",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      // Show error toast for exceptions
+      toast({
+        title: "Error",
+        description: "Failed to execute action. Please try again.",
+        variant: "destructive"
+      });
+      console.error("API call error:", error);
+    } finally {
+      // Reset loading state
+      setIsLoading(false);
+    }
   };
 
   const extractStructuredData = (deal: any) => {
@@ -347,7 +398,20 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                             </div>
                             
                             <DrawerFooter>
-                              <Button className="w-full bg-indigo-600 hover:bg-indigo-700">TAKE ACTION</Button>
+                              <Button 
+                                className="w-full bg-indigo-600 hover:bg-indigo-700"
+                                onClick={() => handleTakeAction(deal)}
+                                disabled={isLoading}
+                              >
+                                {isLoading ? (
+                                  <>
+                                    <Loader className="h-4 w-4 mr-2 animate-spin" />
+                                    PROCESSING...
+                                  </>
+                                ) : (
+                                  "TAKE ACTION"
+                                )}
+                              </Button>
                             </DrawerFooter>
                           </div>
                         </DrawerContent>
