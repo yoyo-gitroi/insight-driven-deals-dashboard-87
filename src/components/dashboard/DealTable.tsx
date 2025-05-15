@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -49,46 +48,59 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
         }
       }
       
-      // Extract action_reference_id and execution_plan from NBA
-      let actionReferenceId = null;
-      let executionPlan = null;
+      // Extract action_summary from NBA
+      let actionSummary = null;
       
       if (nbaData && nbaData.nba_action) {
-        actionReferenceId = nbaData.nba_action.action_reference_id;
-        executionPlan = nbaData.nba_action.execution_plan;
+        actionSummary = nbaData.nba_action.action_summary;
       }
       
-      // Find signal with matching signal_id to the action_reference_id
-      let matchedSignal = null;
-      if (signalData && Array.isArray(signalData) && actionReferenceId) {
-        matchedSignal = signalData.find((signal: any) => signal.signal_id === actionReferenceId);
-      }
-      
-      // If no matched signal found, try to get the signal with highest confidence as fallback
-      if (!matchedSignal && signalData && Array.isArray(signalData) && signalData.length > 0) {
+      // Find signal with highest confidence
+      let highestConfidenceSignal = null;
+      if (signalData && signalData.signals && Array.isArray(signalData.signals)) {
         // Sort signals by confidence (descending)
-        const sortedSignals = [...signalData].sort((a, b) => {
+        const sortedSignals = [...signalData.signals].sort((a, b) => {
           const confA = a.confidence || 0;
           const confB = b.confidence || 0;
           return confB - confA;
         });
         
         // Get the signal with highest confidence
-        matchedSignal = sortedSignals[0];
+        if (sortedSignals.length > 0) {
+          highestConfidenceSignal = sortedSignals[0];
+        }
+      }
+      
+      // Get signal information
+      let signalType = null;
+      let confidence = null;
+      let supportingQuote = null;
+      
+      if (highestConfidenceSignal) {
+        signalType = highestConfidenceSignal.signal_type;
+        confidence = highestConfidenceSignal.confidence;
+        supportingQuote = highestConfidenceSignal.supporting_quote;
+        
+        // If objection_analysis exists, use it for more detailed info
+        if (highestConfidenceSignal.objection_analysis) {
+          confidence = highestConfidenceSignal.objection_analysis.confidence_in_resolution || confidence;
+          supportingQuote = highestConfidenceSignal.objection_analysis.objection_quote || supportingQuote;
+        } else if (highestConfidenceSignal.persona_misalignment) {
+          confidence = highestConfidenceSignal.persona_misalignment.confidence || confidence;
+          supportingQuote = highestConfidenceSignal.persona_misalignment.supporting_quote || supportingQuote;
+        } else if (highestConfidenceSignal.churn_risk) {
+          confidence = highestConfidenceSignal.churn_risk.confidence || confidence;
+          supportingQuote = highestConfidenceSignal.churn_risk.supporting_quote || supportingQuote;
+        }
       }
       
       return {
-        nba: {
-          executionPlan: executionPlan || "No execution plan available",
-          actionReferenceId: actionReferenceId
+        nba: actionSummary || (typeof nbaData === 'string' ? nbaData : JSON.stringify(nbaData)),
+        signal: {
+          signal_type: signalType,
+          confidence: confidence,
+          supporting_quote: supportingQuote
         },
-        signal: matchedSignal ? {
-          signal_id: matchedSignal.signal_id,
-          signal_type: matchedSignal.signal_type,
-          supporting_quote: matchedSignal.supporting_quote,
-          confidence: matchedSignal.confidence,
-          objection_type: matchedSignal.objection_type || null
-        } : null,
         rawData: {
           nba: nbaData,
           signals: signalData
@@ -97,10 +109,7 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
     } catch (error) {
       console.error("Error extracting structured data:", error);
       return {
-        nba: {
-          executionPlan: "Error extracting execution plan",
-          actionReferenceId: null
-        },
+        nba: deal.nba,
         signal: null,
         rawData: {
           nba: deal.nba,
@@ -113,48 +122,34 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
   const getSignalBadge = (signal: any) => {
     if (!signal || !signal.signal_type) return null;
     
-    // Determine badge color based on Noun Category
-    let badgeColor = "bg-gray-200 text-gray-800"; // Default color
+    // Determine badge color based on signal type
+    let badgeColor = "bg-gray-500";
     let signalType = signal.signal_type || "";
     
-    // Parse the Noun Category from [Noun Category]::[Specific Signal]
-    const nounCategory = signalType.split('::')[0]?.replace('[', '').replace(']', '').trim();
+    // Don't strip the signal type delimiter anymore - show full signal type
+    let displaySignalType = signalType;
     
-    // Set colors based on Noun Category as specified
-    switch (nounCategory.toLowerCase()) {
-      case 'objection':
-        badgeColor = "bg-red-200 text-red-800"; // Light red color
-        break;
-      case 'confusion':
-        badgeColor = "bg-yellow-200 text-yellow-800"; // Yellow color
-        break;
-      case 'expansion':
-        badgeColor = "bg-green-200 text-green-800"; // Green color
-        break;
-      case 'churn':
-        badgeColor = "bg-pink-200 text-pink-800"; // Pink color
-        break;
-      case 'persona':
-      case 'mismatch':
-        badgeColor = "bg-blue-200 text-blue-800";
-        break;
-      case 'product':
-      case 'fit':
-        badgeColor = "bg-emerald-200 text-emerald-800";
-        break;
-      case 'pricing':
-      case 'roi':
-        badgeColor = "bg-violet-200 text-violet-800";
-        break;
-      default:
-        badgeColor = "bg-gray-200 text-gray-800";
+    if (signalType.toLowerCase().includes('integration')) {
+      badgeColor = "bg-amber-500";
+    } else if (signalType.toLowerCase().includes('persona') || signalType.toLowerCase().includes('mismatch')) {
+      badgeColor = "bg-blue-500";
+    } else if (signalType.toLowerCase().includes('product') || signalType.toLowerCase().includes('fit')) {
+      badgeColor = "bg-emerald-500";
+    } else if (signalType.toLowerCase().includes('objection') || signalType.toLowerCase().includes('churn')) {
+      badgeColor = "bg-red-500";
+    } else if (signalType.toLowerCase().includes('pricing') || signalType.toLowerCase().includes('roi')) {
+      badgeColor = "bg-violet-500";
+    } else if (signalType.toLowerCase().includes('confusion')) {
+      badgeColor = "bg-orange-500";
+    } else if (signalType.toLowerCase().includes('expansion')) {
+      badgeColor = "bg-green-600";
     }
     
     return (
       <HoverCard>
         <HoverCardTrigger asChild>
           <Badge className={`${badgeColor} cursor-pointer`}>
-            {signalType}
+            {displaySignalType}
           </Badge>
         </HoverCardTrigger>
         <HoverCardContent className="w-80 z-50">
@@ -172,6 +167,29 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
         </HoverCardContent>
       </HoverCard>
     );
+  };
+
+  // Format NBA text to make it more readable - now displays the full text
+  const formatNBA = (nbaText: string) => {
+    if (!nbaText) return "No action available";
+    
+    try {
+      // If it's a JSON string, try to parse it
+      if (typeof nbaText === 'string' && (nbaText.startsWith('{') || nbaText.startsWith('['))) {
+        const parsed = JSON.parse(nbaText);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.nba_action && parsed.nba_action.action_summary) {
+            return parsed.nba_action.action_summary;
+          }
+        }
+      }
+      
+      // Return the full text without truncation
+      return nbaText;
+    } catch (e) {
+      console.error("Error formatting NBA:", e);
+      return nbaText;
+    }
   };
   
   const renderPagination = () => {
@@ -246,7 +264,7 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
           <TableBody>
             {currentDeals.length > 0 ? (
               currentDeals.map((deal, index) => {
-                const extractedData = extractStructuredData(deal);
+                const { nba, signal } = extractStructuredData(deal);
                 const actualIndex = startIndex + index;
                 
                 return (
@@ -255,11 +273,11 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                     <TableCell>{deal.deal_name}</TableCell>
                     <TableCell>{deal.deal_stage}</TableCell>
                     <TableCell>
-                      {extractedData.signal && getSignalBadge(extractedData.signal)}
+                      {signal && getSignalBadge(signal)}
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm bg-slate-50 p-2 rounded-md">
-                        {extractedData.nba.executionPlan}
+                      <div className="text-sm bg-slate-50 p-2 rounded-md max-h-24 overflow-y-auto">
+                        {formatNBA(nba)}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -284,46 +302,40 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                             
                             <div className="p-6 space-y-6">
                               {(() => {
-                                const extractedData = extractStructuredData(deal);
+                                const extracted = extractStructuredData(deal);
                                 return (
                                   <>
-                                    {extractedData.nba && (
+                                    {extracted.nba && (
                                       <div className="space-y-2">
                                         <h3 className="text-lg font-semibold">Next Best Action</h3>
                                         <div className="bg-slate-50 p-4 rounded-md">
-                                          <p>{extractedData.nba.executionPlan}</p>
+                                          <p>{formatNBA(extracted.nba)}</p>
                                         </div>
                                       </div>
                                     )}
                                     
-                                    {extractedData.signal && (
+                                    {extracted.signal && (
                                       <div className="space-y-2">
                                         <h3 className="text-lg font-semibold">Signal Details</h3>
                                         <div className="bg-slate-50 p-4 rounded-md space-y-3">
-                                          {extractedData.signal.signal_type && (
+                                          {extracted.signal.signal_type && (
                                             <div>
-                                              <span className="font-medium">Signal Type:</span> {extractedData.signal.signal_type}
+                                              <span className="font-medium">Signal Type:</span> {extracted.signal.signal_type}
                                             </div>
                                           )}
                                           
-                                          {extractedData.signal.confidence && (
+                                          {extracted.signal.confidence && (
                                             <div>
-                                              <span className="font-medium">Confidence:</span> {extractedData.signal.confidence}%
+                                              <span className="font-medium">Confidence:</span> {extracted.signal.confidence}%
                                             </div>
                                           )}
                                           
-                                          {extractedData.signal.supporting_quote && (
+                                          {extracted.signal.supporting_quote && (
                                             <div>
                                               <span className="font-medium">Supporting Quote:</span>
                                               <p className="italic text-sm mt-1 pl-2 border-l-2 border-gray-300">
-                                                "{extractedData.signal.supporting_quote}"
+                                                "{extracted.signal.supporting_quote}"
                                               </p>
-                                            </div>
-                                          )}
-                                          
-                                          {extractedData.signal.objection_type && (
-                                            <div>
-                                              <span className="font-medium">Objection Type:</span> {extractedData.signal.objection_type}
                                             </div>
                                           )}
                                         </div>
