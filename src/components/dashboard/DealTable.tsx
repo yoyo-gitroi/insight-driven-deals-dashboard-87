@@ -29,53 +29,62 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
   };
 
   const handleTakeAction = async (deal: any) => {
-    // Set loading state
     setIsLoading(true);
-    
+  
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 600000); // 100000 seconds
+  
     try {
-      // Prepare payload with sr_no (if exists) and company_name
       const payload = {
-        "s.no": deal.sr_no || null,
         company: deal.company_name
       };
-      
-      // Make API call
+  
       const response = await fetch("https://aryabhatta-labs.app.n8n.cloud/webhook/e7290720-e974-4673-a659-7b8e107913e9", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: controller.signal
       });
-      
+  
+      clearTimeout(timeoutId);
+  
       if (response.ok) {
-        // Show success toast
         toast({
           title: "Action Complete",
           description: `Action executed successfully for ${deal.company_name}`,
           variant: "default"
         });
       } else {
-        // Show error toast if response is not OK
         toast({
           title: "Action Failed",
           description: "There was an error processing your request",
           variant: "destructive"
         });
       }
-    } catch (error) {
-      // Show error toast for exceptions
-      toast({
-        title: "Error",
-        description: "Failed to execute action. Please try again.",
-        variant: "destructive"
-      });
-      console.error("API call error:", error);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+  
+      if (error.name === "AbortError") {
+        toast({
+          title: "Timeout",
+          description: "The request took too long and was aborted.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to execute action. Please try again.",
+          variant: "destructive"
+        });
+        console.error("API call error:", error);
+      }
     } finally {
-      // Reset loading state
       setIsLoading(false);
     }
   };
+  
 
   const extractStructuredData = (deal: any) => {
     try {
