@@ -34,8 +34,8 @@ export function extractResolutionStatus(signals: any[]) {
         // Process each signal in the signals array
         parsedSignals.signals.forEach((s: any) => {
           // Check if the signal has objection_analysis with resolution_status
-          if (s?.objection_analysis?.resolution_status) {
-            const status = s.objection_analysis.resolution_status.toLowerCase();
+          if (s?.resolution_status) {
+            const status = s.resolution_status.toLowerCase();
             updateResolutionCounts(resolutionCounts, status);
           }
         });
@@ -43,8 +43,8 @@ export function extractResolutionStatus(signals: any[]) {
       // Check if it's a direct array of signals
       else if (Array.isArray(parsedSignals)) {
         parsedSignals.forEach((s: any) => {
-          if (s?.objection_analysis?.resolution_status) {
-            const status = s.objection_analysis.resolution_status.toLowerCase();
+          if (s?.resolution_status) {
+            const status = s.resolution_status.toLowerCase();
             updateResolutionCounts(resolutionCounts, status);
           }
         });
@@ -100,25 +100,19 @@ export function extractUpsellOpportunities(signals: any[]) {
       // Check if it's an object with a 'signals' array inside
       if (parsedSignals?.signals && Array.isArray(parsedSignals.signals)) {
         parsedSignals.signals.forEach((s: any) => {
-          if (s?.customer_receptiveness) {
+          
+          if (s?.upsell_detection == "Yes" || s?.upsell_detection == "yes") {
+            console.log("hum de rhe ha ans" ,s);
             upsellCounts.total++;
-            updateReceptivenessCounts(upsellCounts, s.customer_receptiveness);
+            updateReceptivenessCounts(upsellCounts, s.upsell_detection);
           }
         });
       }
-      // Check if it's a direct array of signals
-      else if (Array.isArray(parsedSignals)) {
-        parsedSignals.forEach((s: any) => {
-          if (s?.customer_receptiveness) {
-            upsellCounts.total++;
-            updateReceptivenessCounts(upsellCounts, s.customer_receptiveness);
-          }
-        });
-      }
+      
       // Direct single signal with customer_receptiveness
-      else if (parsedSignals?.customer_receptiveness) {
+      else if (parsedSignals?.upsell_detection) {
         upsellCounts.total++;
-        updateReceptivenessCounts(upsellCounts, parsedSignals.customer_receptiveness);
+        updateReceptivenessCounts(upsellCounts, parsedSignals.upsell_detection);
       }
       
       // Also check for signals with "Expansion::" type and assume they have higher receptiveness
@@ -452,13 +446,15 @@ export function extractDealStages(deals: any[]) {
     "Discovery": { count: 0, avgDays: 0, totalDays: 0 },
     "Qualification": { count: 0, avgDays: 0, totalDays: 0 },
     "Implementation": { count: 0, avgDays: 0, totalDays: 0 },
-    "Closed Won": { count: 0, avgDays: 0, totalDays: 0 },
-    "Closed Lost": { count: 0, avgDays: 0, totalDays: 0 }
+    // "Closed Won": { count: 0, avgDays: 0, totalDays: 0 },
+    // "Closed Lost": { count: 0, avgDays: 0, totalDays: 0 }
   };
   
   deals.forEach(deal => {
-    const stage = deal.deal_stage || "Unknown";
+   console.log("stage inside",deal);
+    const str = deal.deal_stage;
     
+    const stage = str.charAt(0).toUpperCase() + str.slice(1);
     // Simulate days in stage (since we don't have real data for this)
     const daysInStage = Math.floor(Math.random() * 60) + 5;
     

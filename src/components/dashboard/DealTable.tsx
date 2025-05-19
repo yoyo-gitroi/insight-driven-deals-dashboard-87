@@ -10,10 +10,13 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 
 interface DealTableProps {
   deals: any[];
+  developerMode: boolean;
 }
 
-const DealTable: React.FC<DealTableProps> = ({ deals }) => {
+const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
   const [openDrawerId, setOpenDrawerId] = React.useState<number | null>(null);
+  const [openSignalId, setOpenSignalId] = useState<number | null>(null);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const itemsPerPage = 5;
@@ -110,9 +113,11 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
       
       // Extract action_summary from NBA
       let actionSummary = null;
+      let executionPlan = null;
       
       if (nbaData && nbaData.nba_action) {
         actionSummary = nbaData.nba_action.action_summary;
+         executionPlan = nbaData.nba_action.execution_plan;
       }
       
       // Find signal with highest confidence
@@ -191,13 +196,13 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
     
     if (signalType.toLowerCase().includes('integration')) {
       badgeColor = "bg-amber-500";
-    } else if (signalType.toLowerCase().includes('persona') || signalType.toLowerCase().includes('mismatch')) {
+    } else if (signalType.toLowerCase().includes('externalcontext') ) {
       badgeColor = "bg-blue-500";
-    } else if (signalType.toLowerCase().includes('product') || signalType.toLowerCase().includes('fit')) {
+    } else if (signalType.toLowerCase().includes('churn')) {
       badgeColor = "bg-emerald-500";
-    } else if (signalType.toLowerCase().includes('objection') || signalType.toLowerCase().includes('churn')) {
+    } else if (signalType.toLowerCase().includes('objection')) {
       badgeColor = "bg-red-500";
-    } else if (signalType.toLowerCase().includes('pricing') || signalType.toLowerCase().includes('roi')) {
+    } else if (signalType.toLowerCase().includes('pricing')) {
       badgeColor = "bg-violet-500";
     } else if (signalType.toLowerCase().includes('confusion')) {
       badgeColor = "bg-orange-500";
@@ -324,20 +329,83 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
           <TableBody>
             {currentDeals.length > 0 ? (
               currentDeals.map((deal, index) => {
-                const { nba, signal } = extractStructuredData(deal);
+                const idxGlobal = startIndex + index;
+            
+                const { nba, signal , rawData } = extractStructuredData(deal);
+                console.log("yeh le",rawData.signals)
                 const actualIndex = startIndex + index;
                 
                 return (
-                  <TableRow key={actualIndex}>
+                  <TableRow key={actualIndex} className="overflow-visible">
                     <TableCell className="font-medium">{deal.company_name}</TableCell>
                     <TableCell>{deal.deal_name}</TableCell>
                     <TableCell>{deal.deal_stage}</TableCell>
-                    <TableCell>
-                      {signal && getSignalBadge(signal)}
-                    </TableCell>
+                    <TableCell className="relative">
+        {signal && developerMode ? (
+          <>
+            {/* 1) Badge as trigger */}
+            <div
+              onClick={() => setOpenSignalId(idxGlobal)}
+            >
+              <Badge className="cursor-pointer">
+                {signal.signal_type}
+              </Badge>
+            </div>
+
+            {/* 2) Drawer showing JSON */}
+            <div className="flex justify-normal  items-center">
+            <Drawer 
+              open={openSignalId === idxGlobal}
+              onOpenChange={(open) => setOpenSignalId(open ? idxGlobal : null)}
+            >
+              <DrawerContent className="max-w-lg mx-auto">
+                <div className="mx-auto w-full max-w-lg">
+                <DrawerHeader>
+                  <DrawerTitle>Raw Signals JSON</DrawerTitle>
+                  <DrawerDescription>
+                    Signals for {deal.company_name}
+                  </DrawerDescription>
+                </DrawerHeader>
+
+                <div className="p-4">
+                  <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
+                    {JSON.stringify(rawData.signals, null, 2)}
+                  </pre>
+                </div>
+
+                <DrawerFooter className="flex justify-between">
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      navigator.clipboard.writeText(
+                        JSON.stringify(rawData.signals, null, 2)
+                      )
+                    }
+                  >
+                    Copy
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => setOpenSignalId(null)}
+                  >
+                    Close
+                  </Button>
+                </DrawerFooter>
+                </div>
+              </DrawerContent>
+            </Drawer>
+            </div>
+            
+          </>
+        ) : (
+          getSignalBadge(signal)
+        )}
+      </TableCell>
+
                     <TableCell>
                       <div className="text-sm bg-slate-50 p-2 rounded-md max-h-24 overflow-y-auto">
-                        {formatNBA(nba)}
+                        {/* {formatNBA(nba)} */}
+                        {rawData.nba.nba_action.execution_plan}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -347,7 +415,7 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                         onClick={() => setOpenDrawerId(actualIndex)}
                         className="inline-flex items-center justify-center"
                       >
-                        <Eye className="h-4 w-4 mr-1" /> View
+                        {/* <Eye className="h-4 w-4 mr-1" />*/} Execute 
                       </Button>
                       
                       <Drawer open={openDrawerId === actualIndex} onOpenChange={(open) => {
@@ -368,9 +436,21 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                                     {extracted.nba && (
                                       <div className="space-y-2">
                                         <h3 className="text-lg font-semibold">Next Best Action</h3>
+                                        
+
+                                        <div className="font-medium">Execution Plan</div>
                                         <div className="bg-slate-50 p-4 rounded-md">
-                                          <p>{formatNBA(extracted.nba)}</p>
+                                          <p>{rawData.nba.nba_action.execution_plan}</p>
                                         </div>
+
+                                        <div className="font-medium">Time frame</div>
+                                        <div className="bg-slate-50 p-4 rounded-md">
+                                          <p>{rawData.nba.nba_action.timeframe}</p>
+                                        </div>
+
+                                        <span className="font-medium"> Nba Confidence:</span> { rawData.nba.nba_action.triad_confidence}% 
+
+
                                       </div>
                                     )}
                                     
@@ -392,14 +472,14 @@ const DealTable: React.FC<DealTableProps> = ({ deals }) => {
                                           
                                           {extracted.signal.supporting_quote && (
                                             <div>
-                                              <span className="font-medium">Supporting Quote:</span>
+                                              <span className="font-medium">Insight Quote:</span>
                                               <p className="italic text-sm mt-1 pl-2 border-l-2 border-gray-300">
                                                 "{extracted.signal.supporting_quote}"
                                               </p>
                                             </div>
                                           )}
                                         </div>
-                                      </div>
+                                      </div>  
                                     )}
                                   </>
                                 );

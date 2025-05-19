@@ -31,13 +31,15 @@ interface AEDashboardProps {
   aeList: string[];
   selectedAE: string;
   setSelectedAE: (ae: string) => void;
+  developerMode: boolean;
 }
 
 const AEDashboard: React.FC<AEDashboardProps> = ({ 
   crmData, 
   aeList, 
   selectedAE, 
-  setSelectedAE 
+  setSelectedAE,
+  developerMode
 }) => {
   const [filteredDeals, setFilteredDeals] = useState<any[]>([]);
   const [dealStages, setDealStages] = useState<string[]>([]);
@@ -78,7 +80,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
     const deals = selectedAE === "all" 
       ? crmData
       : crmData.filter(deal => deal.owner === selectedAE);
-    
+    console.log(selectedAE);
     setFilteredDeals(deals);
     
     // Extract unique deal stages
@@ -219,22 +221,23 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
   // Process objection resolution data (same as in AEInsights)
   const processObjectionResolutionData = (deals: any[]) => {
     // Aggregate all the objection resolution data
+    console.log("objection wali deals",deals);
     const totalResolutionStatus = deals.reduce((acc, deal) => {
       const currentCounts = extractResolutionStatus([deal]);
       return {
         resolved: acc.resolved + currentCounts.resolved,
-        partiallyResolved: acc.partiallyResolved + currentCounts.partiallyResolved,
-        inProgress: acc.inProgress + currentCounts.inProgress,
-        notResolved: acc.notResolved + currentCounts.notResolved
+        partiallyResolved: acc.partiallyResolved + currentCounts.partiallyResolved
+        
+       
       };
-    }, { resolved: 0, partiallyResolved: 0, inProgress: 0, notResolved: 0 });
+    }, { resolved: 0, partiallyResolved: 0 });
     
     // Format for chart
     const chartData = [
       { name: "Resolved", value: totalResolutionStatus.resolved },
       { name: "Partially Resolved", value: totalResolutionStatus.partiallyResolved },
-      { name: "In Progress", value: totalResolutionStatus.inProgress },
-      { name: "Not Resolved", value: totalResolutionStatus.notResolved }
+      // { name: "In Progress", value: totalResolutionStatus.inProgress },
+      // { name: "Not Resolved", value: totalResolutionStatus.notResolved }
     ];
     
     setObjectionResolutionData(chartData);
@@ -498,8 +501,10 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
+        
         <h2 className="text-2xl font-bold">
           {tabView === "ae" ? "Account Executive Portal" : "Manager / CRO Dashboard"}
+          
         </h2>
         
         <Tabs 
@@ -511,8 +516,12 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
             <TabsTrigger value="ae">AE View</TabsTrigger>
             <TabsTrigger value="manager">Manager/CRO View</TabsTrigger>
           </TabsList>
+          
         </Tabs>
-      </div>
+
+
+
+      </div>    
 
       {tabView === "ae" && (
         <>
@@ -572,7 +581,7 @@ const AEDashboard: React.FC<AEDashboardProps> = ({
                   <CardTitle>Playbook View</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <DealTable deals={filteredDeals} />
+                  <DealTable deals={filteredDeals} developerMode={developerMode} />
                 </CardContent>
               </Card>
             </TabsContent>

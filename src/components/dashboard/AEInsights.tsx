@@ -42,7 +42,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     highPriorityActions: 0,
     successfulUpsells: 0
   });
-
+  const [totalNbaObjection, settotalNbaObjection]= useState(0);
   // COLORS for charts
   const COLORS = ['#8B5CF6', '#D946EF', '#F97316', '#0EA5E9', '#10B981', '#8E9196'];
   const CONFIDENCE_COLORS = {
@@ -103,32 +103,75 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     // Process upsell opportunities data
     processUpsellOpportunitiesData(deals);
     
-    // Calculate KPIs
+    //Calculate KPIs
     calculateKPIs(deals);
+
+
+
+    //total Objections
+    const totalObjections = deals.reduce((count, deal) => {
+          // console.log("under deals",deal);
+      
+          const signals = JSON.parse(deal.signals).signals;
+          // console.log("signals",signals);
+          const objections = signals.filter(
+            (signal) =>
+
+              typeof signal.signal_type === "string" &&
+              signal.signal_type.startsWith("Objection::")
+            );
+          console.log("yeh rha" , objections);
+
+    return count + objections.length;
+    }, 0);
+
+
+
+    settotalNbaObjection(totalObjections);
+
+
+
+
 
   }, [selectedAE, crmData]);
 
+
+  
   // Calculate top-level KPIs
   const calculateKPIs = (deals: any[]) => {
     // Total deals
     const totalDeals = deals.length;
+    console.log("from" , deals)
     
+   
+
+
+   
+
     // Get objection resolution counts
-    const resolutionCounts = deals.reduce((acc, deal) => {
-      const currentCounts = extractResolutionStatus([deal]);
-      return {
-        resolved: acc.resolved + currentCounts.resolved,
-        partiallyResolved: acc.partiallyResolved + currentCounts.partiallyResolved,
-        inProgress: acc.inProgress + currentCounts.inProgress,
-        notResolved: acc.notResolved + currentCounts.notResolved
-      };
-    }, { resolved: 0, partiallyResolved: 0, inProgress: 0, notResolved: 0 });
+
+    // const resolutionCounts = deals.reduce((acc, deal) => {
+    //   const currentCounts = extractResolutionStatus([deal]);
+    //   return {
+    //     resolved: acc.resolved + currentCounts.resolved,
+    //     partiallyResolved: acc.partiallyResolved + currentCounts.partiallyResolved,
+    //     inProgress: acc.inProgress + currentCounts.inProgress,
+    //     notResolved: acc.notResolved + currentCounts.notResolved
+    //   };
+    // }, { resolved: 0, partiallyResolved: 0, inProgress: 0, notResolved: 0 });
     
-    console.log("Resolution counts:", resolutionCounts);
+    // console.log("Resolution counts:", resolutionCounts);
     
-    const totalObjections = resolutionCounts.resolved + resolutionCounts.partiallyResolved + 
-                            resolutionCounts.inProgress + resolutionCounts.notResolved;
+    // const totalObjections = resolutionCounts.resolved + resolutionCounts.partiallyResolved + 
+    //                         resolutionCounts.inProgress + resolutionCounts.notResolved;
     
+
+    
+    
+  
+  
+  
+                    
     // High priority actions
     const priorityActions = extractPriorityActions(deals);
     
@@ -145,14 +188,14 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     
     setKpiData({
       totalDeals,
-      totalObjections,
+      totalNbaObjection,
       highPriorityActions: priorityActions.high,
       successfulUpsells: upsellOps.high
     });
     
     console.log("KPI data:", {
       totalDeals,
-      totalObjections,
+      totalNbaObjection,
       highPriorityActions: priorityActions.high,
       successfulUpsells: upsellOps.high
     });
@@ -161,6 +204,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
   // Process objection resolution data - improved version
   const processObjectionResolutionData = (deals: any[]) => {
     // Aggregate all the objection resolution data
+    console.log("process wali deals",deals);
     const totalResolutionStatus = deals.reduce((acc, deal) => {
       const currentCounts = extractResolutionStatus([deal]);
       return {
@@ -170,15 +214,15 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
         notResolved: acc.notResolved + currentCounts.notResolved
       };
     }, { resolved: 0, partiallyResolved: 0, inProgress: 0, notResolved: 0 });
-    
-    console.log("Total resolution status:", totalResolutionStatus);
+      console.log("Total resolution status:", totalResolutionStatus);
+  
     
     // Format for chart
     const chartData = [
       { name: "Resolved", value: totalResolutionStatus.resolved },
-      { name: "Partially Resolved", value: totalResolutionStatus.partiallyResolved },
-      { name: "In Progress", value: totalResolutionStatus.inProgress },
-      { name: "Not Resolved", value: totalResolutionStatus.notResolved }
+      { name: "Partially Resolved", value: totalResolutionStatus.partiallyResolved }
+     // { name: "In Progress", value: totalResolutionStatus.inProgress },
+      //{ name: "Not Resolved", value: totalResolutionStatus.notResolved }
     ];
     
     setObjectionResolutionData(chartData);
@@ -247,7 +291,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
         {selectedAE === "all" ? "All Account Executives" : selectedAE} Insights
       </h2>
       
-      {/* KPI Section */}
+      {/* KPI Section 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
@@ -268,7 +312,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
                 <AlertTriangle className="h-5 w-5 text-amber-500" />
                 <span className="font-medium">Total Objections</span>
               </div>
-              <p className="text-3xl font-bold">{kpiData.totalObjections}</p>
+              <p className="text-3xl font-bold">{totalNbaObjection}</p>
             </div>
           </CardContent>
         </Card>
@@ -297,7 +341,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
           </CardContent>
         </Card>
       </div>
-      
+      */}
       <Tabs defaultValue="signal-analysis" className="w-full">
         <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
           <TabsTrigger value="signal-analysis">Signal Analysis</TabsTrigger>
@@ -373,7 +417,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
             </Card>
 
             {/* Signal Confidence Gauge */}
-            <Card className="col-span-1">
+            {/* <Card className="col-span-1">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertCircle className="h-5 w-5" />
@@ -382,31 +426,29 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
               </CardHeader>
               <CardContent className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadialBarChart 
-                    innerRadius={20} 
-                    outerRadius={140} 
-                    barSize={10} 
-                    data={confidenceData}
-                  >
-                    <RadialBar
-                      background
-                      dataKey="value"
-                      label={{ position: 'insideStart', fill: '#fff' }}
-                    />
-                    <Legend 
-                      iconSize={10} 
-                      layout="vertical" 
-                      verticalAlign="middle" 
-                      wrapperStyle={{ lineHeight: '40px' }}
-                    />
-                    <Tooltip formatter={(value: number) => [value, 'Count']} />
-                  </RadialBarChart>
+                <PieChart>
+    <Pie
+      data={confidenceData}
+      dataKey="value"
+      nameKey="name"
+      cx="50%"
+      cy="50%"
+      outerRadius={100}
+      label
+    >
+      {confidenceData.map((entry, index) => (
+        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+      ))}
+    </Pie>
+    <Tooltip formatter={(value) => [value, 'Count']} />
+    <Legend />
+  </PieChart>
                 </ResponsiveContainer>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Deal Value by Signal Heat Map (Simplified as Scatter) */}
-            <Card className="col-span-1">
+            {/* <Card className="col-span-1">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
@@ -444,7 +486,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
                   </ScatterChart>
                 </ResponsiveContainer>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         </TabsContent>
         
@@ -502,23 +544,42 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
               </CardHeader>
               <CardContent className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={objectionResolutionData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="value" name="Count" stroke="#8884d8" activeDot={{ r: 8 }} />
-                  </LineChart>
+                <PieChart width={400} height={400}>
+  <Pie
+    data={objectionResolutionData}
+    dataKey="value"
+    nameKey="name"
+    cx="50%"
+    cy="50%"
+    outerRadius={120}
+    fill="#8884d8"
+    label
+    >
+    {objectionResolutionData.map((entry, index) => (
+      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+    ))}
+  </Pie>
+  <Tooltip />
+  <Legend />
+</PieChart>
+
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-
+               
             {/* Resolution Status Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                <span className="font-medium">Total Objections</span>
+              </div>
+              <p className="text-3xl font-bold">{totalNbaObjection}</p>
+            </div>
+          </CardContent>
+        </Card>
               {objectionResolutionData.map((item) => (
                 <Card key={item.name}>
                   <CardContent className="pt-6">

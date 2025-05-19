@@ -5,6 +5,7 @@ import AEDashboard from "@/components/dashboard/AEDashboard";
 import FileUploader from "@/components/dashboard/FileUploader";
 import { Card, CardContent } from "@/components/ui/card";
 import ObjectionCharts from "@/components/dashboard/ObjectionCharts";
+import { Button } from "@/components/ui/button";
 
 type CRMData = {
   sr_no: number;
@@ -29,9 +30,11 @@ const Dashboard = () => {
   const [crmData, setCrmData] = useState<CRMData[]>([]);
   const [aeList, setAeList] = useState<string[]>([]);
   const [selectedAE, setSelectedAE] = useState<string>("all");
+  const [developerMode, setDeveloperMode] = useState(false);
 
   const handleFileProcessed = (crmSheet: any[]) => {
     if (crmSheet.length) {
+      console.log(crmSheet);
       // Ensure JSON data is preserved as strings
       const processedCrmData = crmSheet.map(row => ({
         ...row,
@@ -58,7 +61,16 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">AI-Powered GTM Platform</h1>
+      <div className="flex justify-between"> 
+         <h1 className="text-3xl font-bold mb-6">AI-Powered GTM Platform</h1>  
+         <div onClick={() => setDeveloperMode(prev => !prev)}>
+         <Button className={
+    developerMode
+      ? "bg-green-600 text-white hover:bg-white hover:text-green-600"
+      : "bg-gray-200 text-black hover:bg-white hover:text-black"
+  }>Developer Mode</Button>
+</div>
+      </div>
       
       {!fileUploaded ? (
         <Card>
@@ -74,6 +86,7 @@ const Dashboard = () => {
             aeList={aeList}
             selectedAE={selectedAE}
             setSelectedAE={setSelectedAE}
+            developerMode={developerMode}
           />
           <div className="mt-8">
             <ObjectionCharts crmData={crmData} />
