@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -88,150 +87,12 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
     }
   };
 
-  const extractStructuredData = (deal: any) => {
-    try {
-      // Parse data if they are strings
-      let nbaData = deal.nba;
-      let signalData = deal.signals;
-      let actionData = deal.actions;
-      
-      if (typeof nbaData === 'string' && nbaData.trim()) {
-        try {
-          nbaData = JSON.parse(nbaData);
-        } catch (e) {
-          console.error("Error parsing NBA JSON:", e);
-        }
-      }
-      
-      if (typeof signalData === 'string' && signalData.trim()) {
-        try {
-          signalData = JSON.parse(signalData);
-        } catch (e) {
-          console.error("Error parsing signals JSON:", e);
-        }
-      }
-
-      if (typeof actionData === 'string' && actionData.trim()) {
-        try {
-          actionData = JSON.parse(actionData);
-        } catch (e) {
-          console.error("Error parsing actions JSON:", e);
-        }
-      }
-      
-      // Extract primary signal (with highest confidence)
-      let primarySignal = null;
-      if (signalData && signalData.signals && Array.isArray(signalData.signals)) {
-        const sortedSignals = [...signalData.signals].sort((a, b) => {
-          const confA = a.signal_score || 0;
-          const confB = b.signal_score || 0;
-          return confB - confA;
-        });
-        
-        if (sortedSignals.length > 0) {
-          primarySignal = sortedSignals[0];
-        }
-      }
-
-      // Extract NBA action
-      let nbaAction = null;
-      if (nbaData && nbaData.nba_action) {
-        nbaAction = nbaData.nba_action;
-      }
-
-      return {
-        signal: primarySignal,
-        nba: nbaAction,
-        rawData: {
-          nba: nbaData,
-          signals: signalData,
-          actions: actionData
-        }
-      };
-    } catch (error) {
-      console.error("Error extracting structured data:", error);
-      return {
-        signal: null,
-        nba: null,
-        rawData: {
-          nba: deal.nba,
-          signals: deal.signals,
-          actions: deal.actions
-        }
-      };
-    }
-  };
-
-  const getSignalTypeColor = (signalType: string) => {
-    if (!signalType) return "border-gray-300";
-    
-    const signalLower = signalType.toLowerCase();
-    
-    if (signalLower.includes('objection::product fit')) return "border-l-[#2196F3]"; // Blue for Product Fit
-    if (signalLower.includes('objection')) return "border-l-[#FF6B6B]"; // Red for other objections
-    if (signalLower.includes('expansion')) return "border-l-[#4CAF50]"; // Green
-    if (signalLower.includes('discovery')) return "border-l-[#2196F3]"; // Blue
-    if (signalLower.includes('technical')) return "border-l-[#9C27B0]"; // Purple
-    if (signalLower.includes('financial')) return "border-l-[#FF9800]"; // Orange
-    if (signalLower.includes('integration')) return "border-l-[#9C27B0]"; // Purple for Integration
-    if (signalLower.includes('confusion')) return "border-l-[#FFC107]"; // Amber
-    
-    return "border-l-gray-300";
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    if (!priority) return null;
-    
-    const priorityLower = priority.toLowerCase();
-    
-    if (priorityLower === 'high') {
-      return <Badge className="bg-[#FF6B6B] hover:bg-[#FF6B6B]/80">HIGH</Badge>;
-    }
-    if (priorityLower === 'medium') {
-      return <Badge className="bg-[#FFC107] hover:bg-[#FFC107]/80">MEDIUM</Badge>;
-    }
-    if (priorityLower === 'low') {
-      return <Badge className="bg-[#4CAF50] hover:bg-[#4CAF50]/80">LOW</Badge>;
-    }
-    
-    return null;
-  };
-
-  const getSignalTypeBadge = (signalType: string) => {
-    if (!signalType) return "SIGNAL";
-    
-    // Format the signal type for display
-    const formattedType = signalType.toUpperCase();
-    return formattedType;
-  };
-
-  const getDetectionFunction = (signal: any) => {
-    if (!signal) return "detect_signal()";
-
-    const signalType = signal.signal_type || "";
-    
-    if (signalType.toLowerCase().includes('integration')) {
-      return "detect_integration_concerns()";
-    } else if (signalType.toLowerCase().includes('objection')) {
-      return "detect_customer_objection()";
-    } else if (signalType.toLowerCase().includes('expansion')) {
-      return "detect_expansion_opportunity()";
-    } else if (signalType.toLowerCase().includes('technical')) {
-      return "detect_technical_concern()";
-    } else if (signalType.toLowerCase().includes('financial')) {
-      return "detect_financial_concern()";
-    } else if (signalType.toLowerCase().includes('confusion')) {
-      return "detect_customer_confusion()";
-    }
-    
-    return "detect_signal()";
-  };
-
   const handleCopyExecutionPlan = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       toast({
         title: "Copied!",
         description: "Execution plan copied to clipboard",
+        variant: "default"
       });
     });
   };

@@ -18,13 +18,8 @@ type ToasterActionElement = React.ReactElement<{
   onClick: () => void
 }>
 
-type Toast = {
-  id: string
-  title?: React.ReactNode
-  description?: React.ReactNode
-  action?: ToasterActionElement
-  variant: "default" | "destructive"
-}
+// Use ToastProps to avoid duplicate naming conflict with the toast function
+type ToastProps = Omit<ToasterToast, "id">
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -147,16 +142,14 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, "id">
-
-function toast({ ...props }: Toast) {
+function toast({ variant = "default", ...props }: ToastProps) {
   const id = genId()
 
-  const update = (props: ToasterToast) =>
+  const update = (props: ToastProps) =>
     dispatch({
       type: actionTypes.UPDATE_TOAST,
       id,
-      toast: { ...props },
+      toast: { id, ...props, variant: props.variant || variant },
     })
 
   const dismiss = () => dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })
@@ -166,7 +159,7 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
-      variant: props.variant || "default",
+      variant,
     },
   })
 
@@ -197,4 +190,4 @@ function useToast() {
   }
 }
 
-export { useToast, toast }
+export { useToast, toast, type ToastProps }
