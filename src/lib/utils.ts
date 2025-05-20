@@ -452,15 +452,18 @@ export function extractDealStages(deals: any[]) {
   
   deals.forEach(deal => {
    console.log("stage inside",deal);
-    const str = deal.deal_stage;
-    
-    const stage = str.charAt(0).toUpperCase() + str.slice(1);
-    // Simulate days in stage (since we don't have real data for this)
-    const daysInStage = Math.floor(Math.random() * 60) + 5;
-    
-    if (stageData[stage]) {
-      stageData[stage].count++;
-      stageData[stage].totalDays += daysInStage;
+    // Check if deal_stage exists and is a string before trying to use it
+    if (deal && deal.deal_stage && typeof deal.deal_stage === 'string') {
+      const str = deal.deal_stage;
+      
+      const stage = str.charAt(0).toUpperCase() + str.slice(1);
+      // Simulate days in stage (since we don't have real data for this)
+      const daysInStage = Math.floor(Math.random() * 60) + 5;
+      
+      if (stageData[stage]) {
+        stageData[stage].count++;
+        stageData[stage].totalDays += daysInStage;
+      }
     }
   });
   
