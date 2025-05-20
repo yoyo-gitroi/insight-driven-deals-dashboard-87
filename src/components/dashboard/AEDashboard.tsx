@@ -72,7 +72,7 @@ const AEDashboard = ({
               )}
             </TabsContent>
             <TabsContent value="insights">
-              <AEInsights deals={filteredDeals} />
+              <AEInsights />
             </TabsContent>
           </Tabs>
         </CardContent>
