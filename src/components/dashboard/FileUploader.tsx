@@ -53,8 +53,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileProcessed }) => {
         setIsLoading(false);
         toast({
           title: "File uploaded successfully",
-          description: `Processed ${crmData.length} rows of data`,
-          variant: "default"
+          description: `Processed ${crmData.length} rows of data`
         });
       } catch (error) {
         console.error("Error processing file:", error);

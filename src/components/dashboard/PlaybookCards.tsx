@@ -1,85 +1,17 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader, Copy } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { safeJsonParse } from "@/lib/utils";
 
 interface PlaybookCardsProps {
   deals: any[];
   developerMode: boolean;
 }
-
-// Helper function to extract structured data from a deal
-const extractStructuredData = (deal: any) => {
-  const nbaData = safeJsonParse(deal.nba, {});
-  const signalData = safeJsonParse(deal.signals, {});
-  
-  return {
-    nba: nbaData.nba_action || nbaData,
-    signal: signalData.signals?.[0] || signalData,
-    rawData: {
-      nba: deal.nba,
-      signals: deal.signals
-    }
-  };
-};
-
-// Helper function to determine signal type color
-const getSignalTypeColor = (signalType: string) => {
-  if (!signalType) return "border-gray-300";
-  
-  const type = signalType.toLowerCase();
-  
-  if (type.includes('objection')) return "border-red-500";
-  if (type.includes('expansion')) return "border-green-500";
-  if (type.includes('confusion')) return "border-purple-500";
-  if (type.includes('implementation')) return "border-blue-500";
-  
-  return "border-gray-300";
-};
-
-// Helper function to get a badge for the signal type
-const getSignalTypeBadge = (signalType: string) => {
-  if (!signalType) return "Signal";
-  
-  const type = signalType.toLowerCase();
-  
-  if (type.includes('objection')) return "Objection";
-  if (type.includes('expansion')) return "Expansion";
-  if (type.includes('confusion')) return "Confusion";
-  if (type.includes('implementation')) return "Implementation";
-  
-  return signalType;
-};
-
-// Helper function to get a badge for the priority level
-const getPriorityBadge = (priority: string) => {
-  const priorityLower = priority?.toLowerCase() || "medium";
-  
-  if (priorityLower.includes('high')) {
-    return <Badge className="bg-red-500 text-white">High Priority</Badge>;
-  } else if (priorityLower.includes('low')) {
-    return <Badge className="bg-green-500 text-white">Low Priority</Badge>;
-  } else {
-    return <Badge className="bg-amber-500 text-white">Medium Priority</Badge>;
-  }
-};
-
-// Helper function to get the detection function name
-const getDetectionFunction = (signal: any) => {
-  if (!signal) return "Unknown";
-  
-  if (signal.detection_function) return signal.detection_function;
-  if (signal.function) return signal.function;
-  
-  // If no function is found, create one based on signal type
-  const signalType = signal.signal_type || "Unknown";
-  return `detect_${signalType.toLowerCase().replace('::', '_').replace(/\s+/g, '_')}`;
-};
 
 const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -156,12 +88,150 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
     }
   };
 
+  const extractStructuredData = (deal: any) => {
+    try {
+      // Parse data if they are strings
+      let nbaData = deal.nba;
+      let signalData = deal.signals;
+      let actionData = deal.actions;
+      
+      if (typeof nbaData === 'string' && nbaData.trim()) {
+        try {
+          nbaData = JSON.parse(nbaData);
+        } catch (e) {
+          console.error("Error parsing NBA JSON:", e);
+        }
+      }
+      
+      if (typeof signalData === 'string' && signalData.trim()) {
+        try {
+          signalData = JSON.parse(signalData);
+        } catch (e) {
+          console.error("Error parsing signals JSON:", e);
+        }
+      }
+
+      if (typeof actionData === 'string' && actionData.trim()) {
+        try {
+          actionData = JSON.parse(actionData);
+        } catch (e) {
+          console.error("Error parsing actions JSON:", e);
+        }
+      }
+      
+      // Extract primary signal (with highest confidence)
+      let primarySignal = null;
+      if (signalData && signalData.signals && Array.isArray(signalData.signals)) {
+        const sortedSignals = [...signalData.signals].sort((a, b) => {
+          const confA = a.signal_score || 0;
+          const confB = b.signal_score || 0;
+          return confB - confA;
+        });
+        
+        if (sortedSignals.length > 0) {
+          primarySignal = sortedSignals[0];
+        }
+      }
+
+      // Extract NBA action
+      let nbaAction = null;
+      if (nbaData && nbaData.nba_action) {
+        nbaAction = nbaData.nba_action;
+      }
+
+      return {
+        signal: primarySignal,
+        nba: nbaAction,
+        rawData: {
+          nba: nbaData,
+          signals: signalData,
+          actions: actionData
+        }
+      };
+    } catch (error) {
+      console.error("Error extracting structured data:", error);
+      return {
+        signal: null,
+        nba: null,
+        rawData: {
+          nba: deal.nba,
+          signals: deal.signals,
+          actions: deal.actions
+        }
+      };
+    }
+  };
+
+  const getSignalTypeColor = (signalType: string) => {
+    if (!signalType) return "border-gray-300";
+    
+    const signalLower = signalType.toLowerCase();
+    
+    if (signalLower.includes('objection::product fit')) return "border-l-[#2196F3]"; // Blue for Product Fit
+    if (signalLower.includes('objection')) return "border-l-[#FF6B6B]"; // Red for other objections
+    if (signalLower.includes('expansion')) return "border-l-[#4CAF50]"; // Green
+    if (signalLower.includes('discovery')) return "border-l-[#2196F3]"; // Blue
+    if (signalLower.includes('technical')) return "border-l-[#9C27B0]"; // Purple
+    if (signalLower.includes('financial')) return "border-l-[#FF9800]"; // Orange
+    if (signalLower.includes('integration')) return "border-l-[#9C27B0]"; // Purple for Integration
+    if (signalLower.includes('confusion')) return "border-l-[#FFC107]"; // Amber
+    
+    return "border-l-gray-300";
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    if (!priority) return null;
+    
+    const priorityLower = priority.toLowerCase();
+    
+    if (priorityLower === 'high') {
+      return <Badge className="bg-[#FF6B6B] hover:bg-[#FF6B6B]/80">HIGH</Badge>;
+    }
+    if (priorityLower === 'medium') {
+      return <Badge className="bg-[#FFC107] hover:bg-[#FFC107]/80">MEDIUM</Badge>;
+    }
+    if (priorityLower === 'low') {
+      return <Badge className="bg-[#4CAF50] hover:bg-[#4CAF50]/80">LOW</Badge>;
+    }
+    
+    return null;
+  };
+
+  const getSignalTypeBadge = (signalType: string) => {
+    if (!signalType) return "SIGNAL";
+    
+    // Format the signal type for display
+    const formattedType = signalType.toUpperCase();
+    return formattedType;
+  };
+
+  const getDetectionFunction = (signal: any) => {
+    if (!signal) return "detect_signal()";
+
+    const signalType = signal.signal_type || "";
+    
+    if (signalType.toLowerCase().includes('integration')) {
+      return "detect_integration_concerns()";
+    } else if (signalType.toLowerCase().includes('objection')) {
+      return "detect_customer_objection()";
+    } else if (signalType.toLowerCase().includes('expansion')) {
+      return "detect_expansion_opportunity()";
+    } else if (signalType.toLowerCase().includes('technical')) {
+      return "detect_technical_concern()";
+    } else if (signalType.toLowerCase().includes('financial')) {
+      return "detect_financial_concern()";
+    } else if (signalType.toLowerCase().includes('confusion')) {
+      return "detect_customer_confusion()";
+    }
+    
+    return "detect_signal()";
+  };
+
   const handleCopyExecutionPlan = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       toast({
         title: "Copied!",
         description: "Execution plan copied to clipboard",
-        variant: "default"
       });
     });
   };
