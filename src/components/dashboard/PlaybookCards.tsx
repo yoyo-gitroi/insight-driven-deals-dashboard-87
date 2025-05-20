@@ -124,6 +124,7 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
         toast({
           title: "Action Complete",
           description: `Action executed successfully for ${deal.company_name}`,
+          variant: "default"
         });
         setIsExecutionModalOpen(false);
       } else {
@@ -159,7 +160,8 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
     navigator.clipboard.writeText(text).then(() => {
       toast({
         title: "Copied!",
-        description: "Execution plan copied to clipboard"
+        description: "Execution plan copied to clipboard",
+        variant: "default"
       });
     });
   };
