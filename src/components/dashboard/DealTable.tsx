@@ -125,8 +125,8 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
       if (signalData && signalData.signals && Array.isArray(signalData.signals)) {
         // Sort signals by confidence (descending)
         const sortedSignals = [...signalData.signals].sort((a, b) => {
-          const confA = a.confidence || 0;
-          const confB = b.confidence || 0;
+          const confA = a.signal_score || 0;
+          const confB = b.signal_score || 0;
           return confB - confA;
         });
         
@@ -322,8 +322,8 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
               <TableHead>Deal Name</TableHead>
               <TableHead>Deal Stage</TableHead>
               <TableHead>Signal</TableHead>
-              <TableHead>Next Best Action</TableHead>
-              <TableHead className="text-right">Details</TableHead>
+              <TableHead>Recommended Action</TableHead>
+              {/* <TableHead className="text-right">Details</TableHead> */}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -358,8 +358,8 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
               open={openSignalId === idxGlobal}
               onOpenChange={(open) => setOpenSignalId(open ? idxGlobal : null)}
             >
-              <DrawerContent className="max-w-lg mx-auto">
-                <div className="mx-auto w-full max-w-lg">
+              <DrawerContent className="h-full max-h-[900px] max-w-[1100px] mx-auto">
+                <div className="mx-auto w-full max-w-[1100px] ">
                 <DrawerHeader>
                   <DrawerTitle>Raw Signals JSON</DrawerTitle>
                   <DrawerDescription>
@@ -367,8 +367,8 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
                   </DrawerDescription>
                 </DrawerHeader>
 
-                <div className="p-4">
-                  <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
+                <div className="p-4   ">
+                  <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-[600px]">
                     {JSON.stringify(rawData.signals, null, 2)}
                   </pre>
                 </div>
@@ -405,10 +405,10 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
                     <TableCell>
                       <div className="text-sm bg-slate-50 p-2 rounded-md max-h-24 overflow-y-auto">
                         {/* {formatNBA(nba)} */}
-                        {rawData.nba.nba_action.execution_plan}
+                        {JSON.stringify(rawData.nba.nba_action.action_title, null, 2)}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right">
+                    {/* </TableCell>
+                    <TableCell className="text-right"> */}
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -421,14 +421,14 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
                       <Drawer open={openDrawerId === actualIndex} onOpenChange={(open) => {
                         if (!open) setOpenDrawerId(null);
                       }}>
-                        <DrawerContent className="max-w-lg mx-auto">
-                          <div className="mx-auto w-full max-w-lg">
+                        <DrawerContent className="w-full  max-w-[900px] mx-auto">
+                          <div className="mx-auto w-full ">
                             <DrawerHeader>
                               <DrawerTitle className="text-xl">{deal.company_name}</DrawerTitle>
                               <DrawerDescription>{deal.deal_name} - {deal.deal_stage}</DrawerDescription>
                             </DrawerHeader>
                             
-                            <div className="p-6 space-y-6">
+                            <div className="p-6 w-full max-w-[900px] space-y-6  overflow-y-auto">
                               {(() => {
                                 const extracted = extractStructuredData(deal);
                                 return (
@@ -437,18 +437,28 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
                                       <div className="space-y-2">
                                         <h3 className="text-lg font-semibold">Next Best Action</h3>
                                         
+                                        <div className="font-medium">Recommended Action</div>
+                                        <div className="bg-slate-50 p-4 rounded-md">
+                                          <p>{rawData.nba.nba_action.action_title}</p>
+                                        </div>
 
                                         <div className="font-medium">Execution Plan</div>
                                         <div className="bg-slate-50 p-4 rounded-md">
                                           <p>{rawData.nba.nba_action.execution_plan}</p>
                                         </div>
 
-                                        <div className="font-medium">Time frame</div>
+                                        <div className="font-medium">Estimated Impact</div>
                                         <div className="bg-slate-50 p-4 rounded-md">
-                                          <p>{rawData.nba.nba_action.timeframe}</p>
+                                          <p>{rawData.nba.nba_action.estimated_impact}</p>
                                         </div>
 
-                                        <span className="font-medium"> Nba Confidence:</span> { rawData.nba.nba_action.triad_confidence}% 
+                                        <div className="font-medium">Estimated Effort</div>
+                                        <div className="bg-slate-50 p-4 rounded-md">
+                                          <p>{rawData.nba.nba_action.estimated_effort}</p>
+                                        </div>
+
+
+                                       
 
 
                                       </div>
