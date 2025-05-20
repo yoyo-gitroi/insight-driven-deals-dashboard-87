@@ -300,15 +300,6 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-
-            {/* Deal Timeline Explanation */}
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                The chart above shows the distribution of deals across different stages and the average number of days 
-                deals spend in each stage. This helps identify potential bottlenecks in the sales process.
-              </AlertDescription>
-            </Alert>
           </div>
         </TabsContent>
         
@@ -350,7 +341,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
               </CardContent>
             </Card>
             
-            {/* Removed duplicate Upsell Opportunities Summary */}
+            {/* Upsell Opportunities Summary - Simplified */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

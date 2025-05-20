@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader, Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
@@ -362,140 +362,136 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
       {/* Pagination */}
       {renderPagination()}
       
-      {/* Execution Plan Modal */}
-      <Drawer open={isExecutionModalOpen} onOpenChange={(open) => {
-        if (!open) setIsExecutionModalOpen(false);
-      }}>
-        <DrawerContent className="w-full max-w-[900px] mx-auto">
-          <div className="mx-auto w-full">
-            {selectedDeal && (() => {
-              const { nba, signal, rawData } = extractStructuredData(selectedDeal);
-              return (
-                <>
-                  <DrawerHeader className="border-b">
-                    <DrawerTitle className="text-xl text-indigo-700">{selectedDeal.company_name}</DrawerTitle>
-                    <DrawerDescription className="flex items-center">
-                      <span className="mr-2">{selectedDeal.deal_name}</span>
-                      <Badge variant="outline" className="ml-auto">{selectedDeal.deal_stage}</Badge>
-                    </DrawerDescription>
-                  </DrawerHeader>
-                  
-                  <div className="p-6 w-full max-w-[900px] space-y-6 overflow-y-auto">
-                    {nba && (
-                      <div className="space-y-5">
+      {/* Execution Plan Modal - Changed from Drawer to Dialog for better experience */}
+      <Dialog open={isExecutionModalOpen} onOpenChange={setIsExecutionModalOpen}>
+        <DialogContent className="max-w-[900px] max-h-[80vh] overflow-y-auto p-0">
+          {selectedDeal && (() => {
+            const { nba, signal, rawData } = extractStructuredData(selectedDeal);
+            return (
+              <>
+                <DialogHeader className="p-6 pb-2 border-b sticky top-0 bg-white z-10">
+                  <DialogTitle className="text-xl text-indigo-700">{selectedDeal.company_name}</DialogTitle>
+                  <DialogDescription className="flex items-center">
+                    <span className="mr-2">{selectedDeal.deal_name}</span>
+                    <Badge variant="outline" className="ml-auto">{selectedDeal.deal_stage}</Badge>
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="p-6 space-y-6">
+                  {nba && (
+                    <div className="space-y-5">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center">
+                          <Badge className="mr-2 bg-indigo-600">{nba.action_verb || "Action"}</Badge>
+                          Execution Plan
+                        </h3>
+                        <div className="bg-gray-50 p-5 rounded-md border border-gray-100 relative">
+                          <p className="text-gray-700 whitespace-pre-line">{nba.execution_plan}</p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="absolute top-2 right-2"
+                            onClick={() => handleCopyExecutionPlan(nba.execution_plan)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {nba.estimated_impact && (
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center">
-                            <Badge className="mr-2 bg-indigo-600">{nba.action_verb || "Action"}</Badge>
-                            Execution Plan
-                          </h3>
-                          <div className="bg-gray-50 p-5 rounded-md border border-gray-100 relative">
-                            <p className="text-gray-700 whitespace-pre-line">{nba.execution_plan}</p>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="absolute top-2 right-2"
-                              onClick={() => handleCopyExecutionPlan(nba.execution_plan)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">Estimated Impact</h3>
+                          <div className="bg-green-50 p-5 rounded-md border border-green-100">
+                            <p className="text-gray-700">{nba.estimated_impact}</p>
                           </div>
                         </div>
+                      )}
 
-                        {nba.estimated_impact && (
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Estimated Impact</h3>
-                            <div className="bg-green-50 p-5 rounded-md border border-green-100">
-                              <p className="text-gray-700">{nba.estimated_impact}</p>
+                      {nba.estimated_effort && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">Estimated Effort</h3>
+                          <div className="bg-blue-50 p-5 rounded-md border border-blue-100">
+                            <p className="text-gray-700">{nba.estimated_effort}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {signal && (
+                    <div className="space-y-2 mt-6 pt-6 border-t">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Signal Details</h3>
+                      <div className="bg-gray-50 p-5 rounded-md border border-gray-100 space-y-4">
+                        {signal.signal_type && (
+                          <div className="flex items-start">
+                            <span className="font-medium text-gray-700 w-1/4">Signal Type:</span> 
+                            <Badge variant="outline" className={
+                              signal.signal_type.toLowerCase().includes('objection::product fit') ? "bg-blue-100 text-blue-700" :
+                              signal.signal_type.toLowerCase().includes('objection') ? "bg-red-100 text-red-700" :
+                              signal.signal_type.toLowerCase().includes('expansion') ? "bg-green-100 text-green-700" :
+                              "bg-gray-100"
+                            }>
+                              {signal.signal_type}
+                            </Badge>
+                          </div>
+                        )}
+                        
+                        {signal.confidence && (
+                          <div className="flex items-center">
+                            <span className="font-medium text-gray-700 w-1/4">Confidence:</span>
+                            <div className="w-3/4">
+                              <div className="flex items-center">
+                                <div className="flex-1 bg-gray-200 rounded-full h-2.5 mr-2">
+                                  <div 
+                                    className="bg-indigo-600 h-2.5 rounded-full" 
+                                    style={{ width: `${signal.confidence}%` }}
+                                  ></div>
+                                </div>
+                                <span>{signal.confidence}%</span>
+                              </div>
                             </div>
                           </div>
                         )}
-
-                        {nba.estimated_effort && (
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Estimated Effort</h3>
-                            <div className="bg-blue-50 p-5 rounded-md border border-blue-100">
-                              <p className="text-gray-700">{nba.estimated_effort}</p>
+                        
+                        {signal.supporting_quote && (
+                          <div className="flex items-start">
+                            <span className="font-medium text-gray-700 w-1/4">Insight Quote:</span>
+                            <div className="w-3/4">
+                              <p className="italic text-sm pl-3 border-l-2 border-gray-300 text-gray-600">
+                                "{signal.supporting_quote}"
+                              </p>
+                              {signal.raised_by && (
+                                <p className="text-xs text-gray-500 mt-1">— {signal.raised_by}{signal.raised_by_role ? `, ${signal.raised_by_role}` : ''}</p>
+                              )}
                             </div>
                           </div>
                         )}
                       </div>
+                    </div>  
+                  )}
+                </div>
+                
+                <DialogFooter className="p-6 border-t bg-gray-50 sticky bottom-0">
+                  <Button 
+                    className="w-full bg-indigo-600 hover:bg-indigo-700"
+                    onClick={() => handleTakeAction(selectedDeal)}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader className="h-4 w-4 mr-2 animate-spin" />
+                        PROCESSING ACTION...
+                      </>
+                    ) : (
+                      "EXECUTE ACTION"
                     )}
-                    
-                    {signal && (
-                      <div className="space-y-2 mt-6 pt-6 border-t">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Signal Details</h3>
-                        <div className="bg-gray-50 p-5 rounded-md border border-gray-100 space-y-4">
-                          {signal.signal_type && (
-                            <div className="flex items-start">
-                              <span className="font-medium text-gray-700 w-1/4">Signal Type:</span> 
-                              <Badge variant="outline" className={
-                                signal.signal_type.toLowerCase().includes('objection::product fit') ? "bg-blue-100 text-blue-700" :
-                                signal.signal_type.toLowerCase().includes('objection') ? "bg-red-100 text-red-700" :
-                                signal.signal_type.toLowerCase().includes('expansion') ? "bg-green-100 text-green-700" :
-                                "bg-gray-100"
-                              }>
-                                {signal.signal_type}
-                              </Badge>
-                            </div>
-                          )}
-                          
-                          {signal.confidence && (
-                            <div className="flex items-center">
-                              <span className="font-medium text-gray-700 w-1/4">Confidence:</span>
-                              <div className="w-3/4">
-                                <div className="flex items-center">
-                                  <div className="flex-1 bg-gray-200 rounded-full h-2.5 mr-2">
-                                    <div 
-                                      className="bg-indigo-600 h-2.5 rounded-full" 
-                                      style={{ width: `${signal.confidence}%` }}
-                                    ></div>
-                                  </div>
-                                  <span>{signal.confidence}%</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {signal.supporting_quote && (
-                            <div className="flex items-start">
-                              <span className="font-medium text-gray-700 w-1/4">Insight Quote:</span>
-                              <div className="w-3/4">
-                                <p className="italic text-sm pl-3 border-l-2 border-gray-300 text-gray-600">
-                                  "{signal.supporting_quote}"
-                                </p>
-                                {signal.raised_by && (
-                                  <p className="text-xs text-gray-500 mt-1">— {signal.raised_by}{signal.raised_by_role ? `, ${signal.raised_by_role}` : ''}</p>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>  
-                    )}
-                  </div>
-                  
-                  <DrawerFooter className="border-t bg-gray-50">
-                    <Button 
-                      className="w-full bg-indigo-600 hover:bg-indigo-700"
-                      onClick={() => handleTakeAction(selectedDeal)}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader className="h-4 w-4 mr-2 animate-spin" />
-                          PROCESSING ACTION...
-                        </>
-                      ) : (
-                        "EXECUTE ACTION"
-                      )}
-                    </Button>
-                  </DrawerFooter>
-                </>
-              );
-            })()}
-          </div>
-        </DrawerContent>
-      </Drawer>
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

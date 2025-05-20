@@ -36,15 +36,16 @@ const ActionCenter: React.FC<ActionCenterProps> = ({ priorityActions }) => {
       type: "Follow Up",
       description: "Check in on stakeholder feedback from technical review",
       priority: "medium"
-    },
-    {
-      type: "Prepare",
-      description: "Create tailored proposal highlighting key use cases",
-      priority: "medium"
     }
   ];
 
   const highPriorityActions = actions.filter(action => action.priority === "high");
+  
+  // Calculate percentages for visualization
+  const total = priorityActions.high + priorityActions.medium + priorityActions.low;
+  const highPercentage = total > 0 ? Math.round((priorityActions.high / total) * 100) : 0;
+  const mediumPercentage = total > 0 ? Math.round((priorityActions.medium / total) * 100) : 0;
+  const lowPercentage = total > 0 ? Math.round((priorityActions.low / total) * 100) : 0;
 
   return (
     <Card className="mt-6 border-t-4 border-t-indigo-600 shadow-sm">
@@ -58,34 +59,52 @@ const ActionCenter: React.FC<ActionCenterProps> = ({ priorityActions }) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Priority chart */}
-          <div className="col-span-1">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* Priority chart - 3 columns */}
+          <div className="col-span-1 md:col-span-3">
             <h3 className="font-medium mb-4 text-center text-gray-700">Priority Distribution</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'High Priority', value: priorityActions.high, fill: '#FF9800' },
-                    { name: 'Medium Priority', value: priorityActions.medium, fill: '#FFC107' },
-                    { name: 'Low Priority', value: priorityActions.low, fill: '#2196F3' }
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  dataKey="value"
-                  label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
-                >
-                </Pie>
-                <Tooltip formatter={(value: number) => [value, 'Count']} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="mb-4">
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'High Priority', value: priorityActions.high, fill: '#FF9800' },
+                      { name: 'Medium Priority', value: priorityActions.medium, fill: '#FFC107' },
+                      { name: 'Low Priority', value: priorityActions.low, fill: '#2196F3' }
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={70}
+                    dataKey="value"
+                    label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                  >
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [value, 'Count']} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Percentage metrics for clarity */}
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div>
+                <div className="font-semibold">High</div>
+                <div className="text-sm">{highPercentage}%</div>
+              </div>
+              <div>
+                <div className="font-semibold">Medium</div>
+                <div className="text-sm">{mediumPercentage}%</div>
+              </div>
+              <div>
+                <div className="font-semibold">Low</div>
+                <div className="text-sm">{lowPercentage}%</div>
+              </div>
+            </div>
           </div>
 
-          {/* Action list */}
-          <div className="col-span-1 md:col-span-2">
+          {/* Action list - 9 columns */}
+          <div className="col-span-1 md:col-span-9">
             <h3 className="font-medium mb-4 text-gray-700">High Priority Actions</h3>
             <div className="space-y-3">
               {highPriorityActions.map((action, index) => (
