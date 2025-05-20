@@ -350,7 +350,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
               </CardContent>
             </Card>
             
-            {/* Upsell Opportunities Summary */}
+            {/* Removed duplicate Upsell Opportunities Summary */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

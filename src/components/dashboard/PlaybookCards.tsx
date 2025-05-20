@@ -1,10 +1,10 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { ChevronLeft, ChevronRight, Loader, Copy } from "lucide-react";
+import { Loader, Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
@@ -167,12 +167,13 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
     
     const signalLower = signalType.toLowerCase();
     
-    if (signalLower.includes('objection')) return "border-l-[#FF6B6B]"; // Red
+    if (signalLower.includes('objection::product fit')) return "border-l-[#2196F3]"; // Blue for Product Fit
+    if (signalLower.includes('objection')) return "border-l-[#FF6B6B]"; // Red for other objections
     if (signalLower.includes('expansion')) return "border-l-[#4CAF50]"; // Green
     if (signalLower.includes('discovery')) return "border-l-[#2196F3]"; // Blue
     if (signalLower.includes('technical')) return "border-l-[#9C27B0]"; // Purple
     if (signalLower.includes('financial')) return "border-l-[#FF9800]"; // Orange
-    if (signalLower.includes('integration')) return "border-l-[#FF6B6B]"; // Red (Integration is an objection)
+    if (signalLower.includes('integration')) return "border-l-[#9C27B0]"; // Purple for Integration
     if (signalLower.includes('confusion')) return "border-l-[#FFC107]"; // Amber
     
     return "border-l-gray-300";
@@ -303,46 +304,47 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
             return (
               <Card 
                 key={index} 
-                className={`overflow-hidden border-l-4 ${getSignalTypeColor(signalType)} transition-all duration-200`}
+                className={`overflow-hidden border-l-4 ${getSignalTypeColor(signalType)} shadow-sm hover:shadow-md transition-all duration-200`}
               >
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 bg-gray-50">
                   <div className="font-bold text-base text-[#212121]">{deal.company_name}</div>
-                  <div className="w-full h-px bg-gray-200 my-1"></div>
                   <div className="text-sm text-gray-600">Deal Stage: {deal.deal_stage || "Unknown"}</div>
                 </CardHeader>
                 
-                <CardContent className="space-y-4 pt-0">
+                <CardContent className="space-y-4 pt-4">
                   {/* Signal Section */}
-                  <div className="bg-gray-50 p-3 rounded-md">
-                    <div className="font-semibold text-sm mb-2">{getSignalTypeBadge(signalType)}</div>
+                  <div className="bg-white p-4 rounded-md border border-gray-100">
+                    <div className="font-semibold text-sm mb-2 flex items-center">
+                      <Badge variant="outline" className="mr-2">{getSignalTypeBadge(signalType)}</Badge>
+                    </div>
                     
                     {customerQuote && (
                       <div className="mb-2">
-                        <p className="text-sm italic text-[#424242]">"{customerQuote}"</p>
+                        <p className="text-sm italic text-[#424242] bg-gray-50 p-3 rounded-md border-l-2 border-gray-200">"{customerQuote}"</p>
                         <p className="text-xs text-[#757575] mt-1">— {signalRaisedBy}, {signalRaisedByRole}</p>
                       </div>
                     )}
                     
-                    <div className="font-mono text-xs text-[#616161] mt-2">{detectionFunction}</div>
+                    <div className="font-mono text-xs text-[#616161] mt-2 bg-gray-50 p-1 rounded inline-block">{detectionFunction}</div>
                   </div>
                   
                   {/* Recommended Action Section */}
-                  <div className="bg-gray-50 p-3 rounded-md">
+                  <div className="bg-white p-4 rounded-md border border-gray-100">
                     <div className="font-semibold text-sm mb-2">RECOMMENDED ACTION</div>
-                    <div className="font-medium text-sm mb-2">{actionVerb}: {actionTitle}</div>
+                    <div className="font-medium text-sm mb-3">{actionVerb}: {actionTitle}</div>
                     
                     <div className="flex items-center justify-between">
                       <div>{getPriorityBadge(actionPriority)}</div>
                       <Button 
                         variant="default" 
                         size="sm" 
-                        className="bg-[#2196F3] hover:bg-[#2196F3]/80 text-white"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
                         onClick={() => {
                           setSelectedDeal(deal);
                           setIsExecutionModalOpen(true);
                         }}
                       >
-                        Execute
+                        Execute Action
                       </Button>
                     </div>
                   </div>
@@ -351,8 +353,8 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
             );
           })
         ) : (
-          <div className="text-center py-8 col-span-full">
-            No deals found. Select an Account Executive or ensure data is loaded correctly.
+          <div className="text-center py-8 col-span-full bg-gray-50 rounded-lg border border-dashed border-gray-200">
+            <p className="text-gray-600">No deals found. Select an Account Executive or ensure data is loaded correctly.</p>
           </div>
         )}
       </div>
@@ -370,69 +372,101 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
               const { nba, signal, rawData } = extractStructuredData(selectedDeal);
               return (
                 <>
-                  <DrawerHeader>
-                    <DrawerTitle className="text-xl">{selectedDeal.company_name}</DrawerTitle>
-                    <DrawerDescription>{selectedDeal.deal_name} - {selectedDeal.deal_stage}</DrawerDescription>
+                  <DrawerHeader className="border-b">
+                    <DrawerTitle className="text-xl text-indigo-700">{selectedDeal.company_name}</DrawerTitle>
+                    <DrawerDescription className="flex items-center">
+                      <span className="mr-2">{selectedDeal.deal_name}</span>
+                      <Badge variant="outline" className="ml-auto">{selectedDeal.deal_stage}</Badge>
+                    </DrawerDescription>
                   </DrawerHeader>
                   
                   <div className="p-6 w-full max-w-[900px] space-y-6 overflow-y-auto">
                     {nba && (
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-semibold">Execution Plan</h3>
-                        <div className="bg-slate-50 p-4 rounded-md relative">
-                          <p>{nba.execution_plan}</p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="absolute top-2 right-2"
-                            onClick={() => handleCopyExecutionPlan(nba.execution_plan)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
+                      <div className="space-y-5">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center">
+                            <Badge className="mr-2 bg-indigo-600">{nba.action_verb || "Action"}</Badge>
+                            Execution Plan
+                          </h3>
+                          <div className="bg-gray-50 p-5 rounded-md border border-gray-100 relative">
+                            <p className="text-gray-700 whitespace-pre-line">{nba.execution_plan}</p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="absolute top-2 right-2"
+                              onClick={() => handleCopyExecutionPlan(nba.execution_plan)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
 
                         {nba.estimated_impact && (
-                          <>
-                            <h3 className="text-lg font-semibold mt-4">Estimated Impact</h3>
-                            <div className="bg-slate-50 p-4 rounded-md">
-                              <p>{nba.estimated_impact}</p>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Estimated Impact</h3>
+                            <div className="bg-green-50 p-5 rounded-md border border-green-100">
+                              <p className="text-gray-700">{nba.estimated_impact}</p>
                             </div>
-                          </>
+                          </div>
                         )}
 
                         {nba.estimated_effort && (
-                          <>
-                            <h3 className="text-lg font-semibold mt-4">Estimated Effort</h3>
-                            <div className="bg-slate-50 p-4 rounded-md">
-                              <p>{nba.estimated_effort}</p>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Estimated Effort</h3>
+                            <div className="bg-blue-50 p-5 rounded-md border border-blue-100">
+                              <p className="text-gray-700">{nba.estimated_effort}</p>
                             </div>
-                          </>
+                          </div>
                         )}
                       </div>
                     )}
                     
                     {signal && (
-                      <div className="space-y-2 mt-4">
-                        <h3 className="text-lg font-semibold">Signal Details</h3>
-                        <div className="bg-slate-50 p-4 rounded-md space-y-3">
+                      <div className="space-y-2 mt-6 pt-6 border-t">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Signal Details</h3>
+                        <div className="bg-gray-50 p-5 rounded-md border border-gray-100 space-y-4">
                           {signal.signal_type && (
-                            <div>
-                              <span className="font-medium">Signal Type:</span> {signal.signal_type}
+                            <div className="flex items-start">
+                              <span className="font-medium text-gray-700 w-1/4">Signal Type:</span> 
+                              <Badge variant="outline" className={
+                                signal.signal_type.toLowerCase().includes('objection::product fit') ? "bg-blue-100 text-blue-700" :
+                                signal.signal_type.toLowerCase().includes('objection') ? "bg-red-100 text-red-700" :
+                                signal.signal_type.toLowerCase().includes('expansion') ? "bg-green-100 text-green-700" :
+                                "bg-gray-100"
+                              }>
+                                {signal.signal_type}
+                              </Badge>
                             </div>
                           )}
                           
                           {signal.confidence && (
-                            <div>
-                              <span className="font-medium">Confidence:</span> {signal.confidence}%
+                            <div className="flex items-center">
+                              <span className="font-medium text-gray-700 w-1/4">Confidence:</span>
+                              <div className="w-3/4">
+                                <div className="flex items-center">
+                                  <div className="flex-1 bg-gray-200 rounded-full h-2.5 mr-2">
+                                    <div 
+                                      className="bg-indigo-600 h-2.5 rounded-full" 
+                                      style={{ width: `${signal.confidence}%` }}
+                                    ></div>
+                                  </div>
+                                  <span>{signal.confidence}%</span>
+                                </div>
+                              </div>
                             </div>
                           )}
                           
                           {signal.supporting_quote && (
-                            <div>
-                              <span className="font-medium">Insight Quote:</span>
-                              <p className="italic text-sm mt-1 pl-2 border-l-2 border-gray-300">
-                                "{signal.supporting_quote}"
-                              </p>
+                            <div className="flex items-start">
+                              <span className="font-medium text-gray-700 w-1/4">Insight Quote:</span>
+                              <div className="w-3/4">
+                                <p className="italic text-sm pl-3 border-l-2 border-gray-300 text-gray-600">
+                                  "{signal.supporting_quote}"
+                                </p>
+                                {signal.raised_by && (
+                                  <p className="text-xs text-gray-500 mt-1">— {signal.raised_by}{signal.raised_by_role ? `, ${signal.raised_by_role}` : ''}</p>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -440,7 +474,7 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
                     )}
                   </div>
                   
-                  <DrawerFooter>
+                  <DrawerFooter className="border-t bg-gray-50">
                     <Button 
                       className="w-full bg-indigo-600 hover:bg-indigo-700"
                       onClick={() => handleTakeAction(selectedDeal)}
@@ -449,10 +483,10 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
                       {isLoading ? (
                         <>
                           <Loader className="h-4 w-4 mr-2 animate-spin" />
-                          PROCESSING...
+                          PROCESSING ACTION...
                         </>
                       ) : (
-                        "TAKE ACTION"
+                        "EXECUTE ACTION"
                       )}
                     </Button>
                   </DrawerFooter>

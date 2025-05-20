@@ -19,15 +19,17 @@ const AccountHealthCard: React.FC<AccountHealthCardProps> = ({
   trend = "neutral"
 }) => {
   return (
-    <Card className="transition-all hover:shadow-md">
+    <Card className="transition-all hover:shadow-md bg-gradient-to-br from-white to-gray-50 border border-gray-100">
       <CardContent className="pt-6">
         <div className="flex flex-col items-center">
-          <div className="flex items-center gap-2 mb-2">
-            {icon}
+          <div className="flex items-center gap-2 mb-2 text-gray-600">
+            <div className="bg-gray-100 p-1.5 rounded-full">
+              {icon}
+            </div>
             <span className="font-medium">{title}</span>
           </div>
           <div className="flex items-center gap-1">
-            <p className="text-3xl font-bold">{value}</p>
+            <p className="text-3xl font-bold text-gray-800">{value}</p>
             {trend === "up" && (
               <TrendingUp className="h-4 w-4 text-green-500" />
             )}

@@ -20,7 +20,7 @@ const ObjectionBreakdown: React.FC<ObjectionBreakdownProps> = ({ objectionTypeDa
   });
 
   return (
-    <Card className="col-span-1">
+    <Card className="col-span-1 border border-gray-100">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />
@@ -53,7 +53,6 @@ const ObjectionBreakdown: React.FC<ObjectionBreakdownProps> = ({ objectionTypeDa
             <Bar 
               dataKey="value" 
               name="Count" 
-              fill="#D946EF"
               radius={[0, 4, 4, 0]}
             >
               {enhancedData.map((entry, index) => (

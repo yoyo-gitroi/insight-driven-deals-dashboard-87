@@ -47,20 +47,21 @@ const ActionCenter: React.FC<ActionCenterProps> = ({ priorityActions }) => {
   const highPriorityActions = actions.filter(action => action.priority === "high");
 
   return (
-    <Card className="mt-6">
-      <CardHeader>
+    <Card className="mt-6 border-t-4 border-t-indigo-600 shadow-sm">
+      <CardHeader className="bg-gray-50 pb-3">
         <CardTitle className="flex items-center gap-2">
-          <Flag className="h-5 w-5" />
+          <Flag className="h-5 w-5 text-indigo-600" />
           Priority Actions
         </CardTitle>
         <CardDescription>
           Recommended next steps to accelerate deals
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Priority chart */}
           <div className="col-span-1">
+            <h3 className="font-medium mb-4 text-center text-gray-700">Priority Distribution</h3>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
@@ -74,7 +75,7 @@ const ActionCenter: React.FC<ActionCenterProps> = ({ priorityActions }) => {
                   labelLine={false}
                   outerRadius={80}
                   dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
                 >
                 </Pie>
                 <Tooltip formatter={(value: number) => [value, 'Count']} />
@@ -85,17 +86,17 @@ const ActionCenter: React.FC<ActionCenterProps> = ({ priorityActions }) => {
 
           {/* Action list */}
           <div className="col-span-1 md:col-span-2">
-            <h3 className="font-medium mb-4">High Priority Actions</h3>
+            <h3 className="font-medium mb-4 text-gray-700">High Priority Actions</h3>
             <div className="space-y-3">
               {highPriorityActions.map((action, index) => (
-                <Card key={index} className="bg-amber-50 border-amber-200">
+                <Card key={index} className="bg-amber-50 border-amber-200 hover:shadow-md transition-all">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
                         <Badge className="mb-2 bg-amber-500">{action.type}</Badge>
-                        <p className="text-sm">{action.description}</p>
+                        <p className="text-sm text-gray-700">{action.description}</p>
                       </div>
-                      <Button size="sm" variant="outline" className="flex gap-1">
+                      <Button size="sm" variant="outline" className="flex gap-1 mt-1 border-amber-300 text-amber-700 hover:bg-amber-100">
                         <CheckCircle className="h-4 w-4" /> Mark Complete
                       </Button>
                     </div>
@@ -104,7 +105,9 @@ const ActionCenter: React.FC<ActionCenterProps> = ({ priorityActions }) => {
               ))}
 
               {highPriorityActions.length === 0 && (
-                <p className="text-sm text-muted-foreground">No high priority actions at this time.</p>
+                <div className="p-6 text-center bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                  <p className="text-sm text-muted-foreground">No high priority actions at this time.</p>
+                </div>
               )}
             </div>
           </div>
