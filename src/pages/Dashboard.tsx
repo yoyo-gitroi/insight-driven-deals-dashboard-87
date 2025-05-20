@@ -51,6 +51,13 @@ const Dashboard = () => {
       setAeList(uniqueAEs);
       
       setFileUploaded(true);
+      
+      // Success toast notification
+      toast({
+        title: "Data imported successfully",
+        description: `Loaded ${processedCrmData.length} deals from the file`,
+        variant: "default"
+      });
     } else {
       toast({
         title: "Error processing file",
