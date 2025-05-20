@@ -4,13 +4,82 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader, Copy } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { safeJsonParse } from "@/lib/utils";
 
 interface PlaybookCardsProps {
   deals: any[];
   developerMode: boolean;
 }
+
+// Helper function to extract structured data from a deal
+const extractStructuredData = (deal: any) => {
+  const nbaData = safeJsonParse(deal.nba, {});
+  const signalData = safeJsonParse(deal.signals, {});
+  
+  return {
+    nba: nbaData.nba_action || nbaData,
+    signal: signalData.signals?.[0] || signalData,
+    rawData: {
+      nba: deal.nba,
+      signals: deal.signals
+    }
+  };
+};
+
+// Helper function to determine signal type color
+const getSignalTypeColor = (signalType: string) => {
+  if (!signalType) return "border-gray-300";
+  
+  const type = signalType.toLowerCase();
+  
+  if (type.includes('objection')) return "border-red-500";
+  if (type.includes('expansion')) return "border-green-500";
+  if (type.includes('confusion')) return "border-purple-500";
+  if (type.includes('implementation')) return "border-blue-500";
+  
+  return "border-gray-300";
+};
+
+// Helper function to get a badge for the signal type
+const getSignalTypeBadge = (signalType: string) => {
+  if (!signalType) return "Signal";
+  
+  const type = signalType.toLowerCase();
+  
+  if (type.includes('objection')) return "Objection";
+  if (type.includes('expansion')) return "Expansion";
+  if (type.includes('confusion')) return "Confusion";
+  if (type.includes('implementation')) return "Implementation";
+  
+  return signalType;
+};
+
+// Helper function to get a badge for the priority level
+const getPriorityBadge = (priority: string) => {
+  const priorityLower = priority?.toLowerCase() || "medium";
+  
+  if (priorityLower.includes('high')) {
+    return <Badge className="bg-red-500 text-white">High Priority</Badge>;
+  } else if (priorityLower.includes('low')) {
+    return <Badge className="bg-green-500 text-white">Low Priority</Badge>;
+  } else {
+    return <Badge className="bg-amber-500 text-white">Medium Priority</Badge>;
+  }
+};
+
+// Helper function to get the detection function name
+const getDetectionFunction = (signal: any) => {
+  if (!signal) return "Unknown";
+  
+  if (signal.detection_function) return signal.detection_function;
+  if (signal.function) return signal.function;
+  
+  // If no function is found, create one based on signal type
+  const signalType = signal.signal_type || "Unknown";
+  return `detect_${signalType.toLowerCase().replace('::', '_').replace(/\s+/g, '_')}`;
+};
 
 const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,7 +124,6 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
         toast({
           title: "Action Complete",
           description: `Action executed successfully for ${deal.company_name}`,
-          variant: "default"
         });
         setIsExecutionModalOpen(false);
       } else {
@@ -91,8 +159,7 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
     navigator.clipboard.writeText(text).then(() => {
       toast({
         title: "Copied!",
-        description: "Execution plan copied to clipboard",
-        variant: "default"
+        description: "Execution plan copied to clipboard"
       });
     });
   };
