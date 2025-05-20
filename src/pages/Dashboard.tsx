@@ -11,18 +11,18 @@ import { LoaderComponent } from "@/components/ui/loader";
 import { fetchGoogleSheetsData } from "@/utils/sheetsFetcher";
 
 type CRMData = {
-  sr_no: number;
-  company_name: string;
-  size: string;
-  deal_name: string;
-  deal_stage: string;
-  deal_amount: number;
-  owner: string;
-  close_date: string;
-  nba: string;
-  signals: string;
-  actions: string;
-  transcripts: string;
+  sr_no?: number;
+  company_name?: string;
+  size?: string;
+  deal_name?: string;
+  deal_stage?: string;
+  deal_amount?: number;
+  owner?: string;
+  close_date?: string;
+  nba?: string;
+  signals?: string;
+  actions?: string;
+  transcripts?: string;
   industry?: string;
   contact_title?: string;
   geo?: string;
@@ -77,19 +77,35 @@ const Dashboard = () => {
 
   const handleFileProcessed = (crmSheet: any[]) => {
     if (crmSheet.length) {
-      console.log(crmSheet);
-      // Ensure JSON data is preserved as strings
-      const processedCrmData = crmSheet.map(row => ({
-        ...row,
-        signals: typeof row.signals === 'string' ? row.signals : JSON.stringify(row.signals),
-        actions: typeof row.actions === 'string' ? row.actions : JSON.stringify(row.actions),
-        nba: typeof row.nba === 'string' ? row.nba : JSON.stringify(row.nba)
-      }));
+      console.log("Raw data received:", crmSheet);
       
+      // Map the Google Sheets column names to the expected field names
+      const processedCrmData = crmSheet.map(row => {
+        return {
+          sr_no: row['s.no'] || row.sr_no,
+          company_name: row['Company Name'] || row.company_name,
+          size: row['Size'] || row.size,
+          deal_name: row['Deal Name'] || row.deal_name,
+          deal_stage: row['Deal Stage'] || row.deal_stage,
+          deal_amount: parseFloat(row['Deal Amount']) || row.deal_amount,
+          owner: row['Owner'] || row.owner,
+          close_date: row['Close Date'] || row.close_date,
+          nba: row['nba'] || row.nba,
+          signals: row['signals'] || row.signals,
+          actions: row['actions'] || row.actions,
+          transcripts: row['transcripts'] || row.transcripts,
+          industry: row['Industry'] || row.industry,
+          contact_title: row['Contact Title'] || row.contact_title,
+          geo: row['Geo'] || row.geo
+        };
+      });
+      
+      console.log("Processed data:", processedCrmData);
       setCrmData(processedCrmData);
       
       // Extract unique AE list from owner field
-      const uniqueAEs = [...new Set(crmSheet.map(row => row.owner))].filter(Boolean);
+      const uniqueAEs = [...new Set(processedCrmData.map(row => row.owner))].filter(Boolean);
+      console.log("AE List:", uniqueAEs);
       setAeList(uniqueAEs);
       
       setFileUploaded(true);

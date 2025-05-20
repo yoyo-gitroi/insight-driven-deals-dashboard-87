@@ -41,7 +41,31 @@ export const fetchGoogleSheetsData = async (sheetUrl: string): Promise<any[]> =>
       return XLSX.utils.sheet_to_json(worksheet);
     });
     
-    return jsonData;
+    console.log("Fetched sheet data:", jsonData);
+    
+    // Map the column names to expected format
+    const processedData = jsonData.map((row: any) => {
+      return {
+        sr_no: row['s.no'],
+        company_name: row['Company Name'],
+        size: row['Size'],
+        deal_name: row['Deal Name'],
+        deal_stage: row['Deal Stage'],
+        deal_amount: row['Deal Amount'],
+        owner: row['Owner'],
+        close_date: row['Close Date'],
+        nba: row['nba'],
+        signals: row['signals'],
+        actions: row['actions'],
+        transcripts: row['transcripts'],
+        industry: row['Industry'],
+        contact_title: row['Contact Title'],
+        geo: row['Geo']
+      };
+    });
+    
+    console.log("Processed sheet data:", processedData);
+    return processedData;
   } catch (error) {
     console.error('Error fetching Google Sheets data:', error);
     throw error;

@@ -451,7 +451,8 @@ export function extractDealStages(deals: any[]) {
   };
   
   deals.forEach(deal => {
-   console.log("stage inside",deal);
+    console.log("Processing deal stage:", deal);
+    
     // Check if deal_stage exists and is a string before trying to use it
     if (deal && deal.deal_stage && typeof deal.deal_stage === 'string') {
       const str = deal.deal_stage;

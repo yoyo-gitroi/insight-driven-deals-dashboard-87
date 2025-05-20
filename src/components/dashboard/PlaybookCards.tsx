@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Loader, Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { safeJsonParse } from "@/lib/utils";
 
 interface PlaybookCardsProps {
   deals: any[];
@@ -90,12 +90,14 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
 
   const extractStructuredData = (deal: any) => {
     try {
+      console.log("Extracting structured data from deal:", deal);
+      
       // Parse data if they are strings
       let nbaData = deal.nba;
       let signalData = deal.signals;
       let actionData = deal.actions;
       
-      if (typeof nbaData === 'string' && nbaData.trim()) {
+      if (typeof nbaData === 'string' && nbaData?.trim()) {
         try {
           nbaData = JSON.parse(nbaData);
         } catch (e) {
@@ -103,7 +105,7 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
         }
       }
       
-      if (typeof signalData === 'string' && signalData.trim()) {
+      if (typeof signalData === 'string' && signalData?.trim()) {
         try {
           signalData = JSON.parse(signalData);
         } catch (e) {
@@ -111,7 +113,7 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
         }
       }
 
-      if (typeof actionData === 'string' && actionData.trim()) {
+      if (typeof actionData === 'string' && actionData?.trim()) {
         try {
           actionData = JSON.parse(actionData);
         } catch (e) {
@@ -291,6 +293,7 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
       <div className="grid grid-cols-1 gap-6">
         {currentDeals.length > 0 ? (
           currentDeals.map((deal, index) => {
+            console.log("Rendering deal:", deal);
             const { signal, nba, rawData } = extractStructuredData(deal);
             const signalType = signal?.signal_type || "";
             const customerQuote = signal?.supporting_quote || signal?.supporting_quote_customer || "";
@@ -301,14 +304,17 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
             const actionPriority = nba?.priority || "medium";
             const detectionFunction = getDetectionFunction(signal);
             
+            const companyName = deal.company_name || deal['Company Name'] || "Unknown Company";
+            const dealStage = deal.deal_stage || deal['Deal Stage'] || "Unknown";
+            
             return (
               <Card 
                 key={index} 
                 className={`overflow-hidden border-l-4 ${getSignalTypeColor(signalType)} shadow-sm hover:shadow-md transition-all duration-200`}
               >
                 <CardHeader className="pb-2 bg-gray-50">
-                  <div className="font-bold text-base text-[#212121]">{deal.company_name}</div>
-                  <div className="text-sm text-gray-600">Deal Stage: {deal.deal_stage || "Unknown"}</div>
+                  <div className="font-bold text-base text-[#212121]">{companyName}</div>
+                  <div className="text-sm text-gray-600">Deal Stage: {dealStage}</div>
                 </CardHeader>
                 
                 <CardContent className="space-y-4 pt-4">
@@ -367,15 +373,19 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
         <DialogContent className="max-w-[800px] max-h-[80vh] overflow-y-auto p-0">
           {selectedDeal && (() => {
             const { nba, signal, rawData } = extractStructuredData(selectedDeal);
+            const companyName = selectedDeal.company_name || selectedDeal['Company Name'] || "Unknown Company";
+            const dealStage = selectedDeal.deal_stage || selectedDeal['Deal Stage'] || "Unknown";
+            const dealName = selectedDeal.deal_name || selectedDeal['Deal Name'] || "Unknown Deal";
+            
             return (
               <>
                 <DialogHeader className="p-6 pb-2 border-b sticky top-0 bg-white z-10">
                   <DialogTitle className="text-xl text-indigo-700 flex items-center">
-                    <span className="truncate">{selectedDeal.company_name}</span>
-                    <Badge variant="outline" className="ml-2">{selectedDeal.deal_stage}</Badge>
+                    <span className="truncate">{companyName}</span>
+                    <Badge variant="outline" className="ml-2">{dealStage}</Badge>
                   </DialogTitle>
                   <DialogDescription className="text-gray-600">
-                    {selectedDeal.deal_name}
+                    {dealName}
                   </DialogDescription>
                 </DialogHeader>
                 
