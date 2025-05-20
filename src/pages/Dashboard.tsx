@@ -2,11 +2,10 @@
 import React, { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import AEDashboard from "@/components/dashboard/AEDashboard";
-import ClientInsights from "@/components/dashboard/ClientInsights";
 import FileUploader from "@/components/dashboard/FileUploader";
 import { Card, CardContent } from "@/components/ui/card";
+import ObjectionCharts from "@/components/dashboard/ObjectionCharts";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type CRMData = {
   sr_no: number;
@@ -33,9 +32,6 @@ const Dashboard = () => {
   const [selectedAE, setSelectedAE] = useState<string>("all");
   const [developerMode, setDeveloperMode] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
-  const [activeTab, setActiveTab] = useState("performance");
-  const [companyList, setCompanyList] = useState<string[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<string>("all");
 
   const handleFileProcessed = (crmSheet: any[]) => {
     if (crmSheet.length) {
@@ -53,10 +49,6 @@ const Dashboard = () => {
       // Extract unique AE list from owner field
       const uniqueAEs = [...new Set(crmSheet.map(row => row.owner))].filter(Boolean);
       setAeList(uniqueAEs);
-      
-      // Extract unique company list from company_name field
-      const uniqueCompanies = [...new Set(crmSheet.map(row => row.company_name))].filter(Boolean);
-      setCompanyList(uniqueCompanies);
       
       setFileUploaded(true);
       
@@ -77,33 +69,32 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between mb-4"> 
-         <h1 className="text-3xl font-bold">AI-Powered GTM Platform</h1>  
+      <div className="flex justify-between"> 
+         <h1 className="text-3xl font-bold mb-6">AI-Powered GTM Platform</h1>  
          <div className="flex space-x-4">
-           <div className="flex rounded-md overflow-hidden">
+           <div>
              <Button 
-               className={viewMode === "cards" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}
+               className={viewMode === "cards" ? "bg-blue-600 text-white" : "bg-gray-200 text-black"}
                onClick={() => setViewMode("cards")}
              >
                Card View
              </Button>
              <Button 
-               className={viewMode === "table" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}
+               className={viewMode === "table" ? "bg-blue-600 text-white" : "bg-gray-200 text-black"}
                onClick={() => setViewMode("table")}
              >
                Table View
              </Button>
            </div>
-           <Button
-             onClick={() => setDeveloperMode(prev => !prev)}
-             className={
+           <div onClick={() => setDeveloperMode(prev => !prev)}>
+             <Button className={
                developerMode
-                 ? "bg-green-600 text-white hover:bg-green-700"
-                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-             }
-           >
-             Developer Mode
-           </Button>
+                 ? "bg-green-600 text-white hover:bg-white hover:text-green-600"
+                 : "bg-gray-200 text-black hover:bg-white hover:text-black"
+             }>
+               Developer Mode
+             </Button>
+           </div>
          </div>
       </div>
       
@@ -116,72 +107,17 @@ const Dashboard = () => {
         </Card>
       ) : (
         <>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
-            <TabsList className="grid w-[400px] grid-cols-2">
-              <TabsTrigger value="performance">Performance Dashboard</TabsTrigger>
-              <TabsTrigger value="insights">Client Insights</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="performance" className="mt-6">
-              <AEDashboard 
-                crmData={crmData}
-                aeList={aeList}
-                selectedAE={selectedAE}
-                setSelectedAE={setSelectedAE}
-                developerMode={developerMode}
-                viewMode={viewMode}
-              />
-            </TabsContent>
-            
-            <TabsContent value="insights" className="mt-6">
-              <div className="mb-4 flex flex-wrap gap-4">
-                <div className="flex items-center space-x-2">
-                  <label htmlFor="ae-select" className="text-sm font-medium">
-                    Select AE:
-                  </label>
-                  <select
-                    id="ae-select"
-                    className="rounded-md border border-gray-300 py-1 px-3 text-sm"
-                    value={selectedAE}
-                    onChange={(e) => setSelectedAE(e.target.value)}
-                  >
-                    <option value="all">All AEs</option>
-                    {aeList.map((ae) => (
-                      <option key={ae} value={ae}>
-                        {ae}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <label htmlFor="company-select" className="text-sm font-medium">
-                    Select Company:
-                  </label>
-                  <select
-                    id="company-select"
-                    className="rounded-md border border-gray-300 py-1 px-3 text-sm"
-                    value={selectedCompany}
-                    onChange={(e) => setSelectedCompany(e.target.value)}
-                    disabled={selectedAE !== "all"}
-                  >
-                    <option value="all">All Companies</option>
-                    {companyList.map((company) => (
-                      <option key={company} value={company}>
-                        {company}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              <ClientInsights 
-                data={crmData}
-                selectedAE={selectedAE !== "all" ? selectedAE : undefined}
-                selectedCompany={selectedCompany !== "all" ? selectedCompany : undefined}
-              />
-            </TabsContent>
-          </Tabs>
+          <AEDashboard 
+            crmData={crmData}
+            aeList={aeList}
+            selectedAE={selectedAE}
+            setSelectedAE={setSelectedAE}
+            developerMode={developerMode}
+            viewMode={viewMode}
+          />
+          <div className="mt-8">
+            <ObjectionCharts crmData={crmData} />
+          </div>
         </>
       )}
     </div>
