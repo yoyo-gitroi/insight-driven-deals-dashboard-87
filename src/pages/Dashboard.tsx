@@ -35,7 +35,6 @@ const Dashboard = () => {
   const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
   const [activeTab, setActiveTab] = useState("performance");
   const [companyList, setCompanyList] = useState<string[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<string>("all");
 
   const handleFileProcessed = (crmSheet: any[]) => {
     if (crmSheet.length) {
@@ -134,52 +133,7 @@ const Dashboard = () => {
             </TabsContent>
             
             <TabsContent value="insights" className="mt-6">
-              <div className="mb-4 flex flex-wrap gap-4">
-                <div className="flex items-center space-x-2">
-                  <label htmlFor="ae-select" className="text-sm font-medium">
-                    Select AE:
-                  </label>
-                  <select
-                    id="ae-select"
-                    className="rounded-md border border-gray-300 py-1 px-3 text-sm"
-                    value={selectedAE}
-                    onChange={(e) => setSelectedAE(e.target.value)}
-                  >
-                    <option value="all">All AEs</option>
-                    {aeList.map((ae) => (
-                      <option key={ae} value={ae}>
-                        {ae}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <label htmlFor="company-select" className="text-sm font-medium">
-                    Select Company:
-                  </label>
-                  <select
-                    id="company-select"
-                    className="rounded-md border border-gray-300 py-1 px-3 text-sm"
-                    value={selectedCompany}
-                    onChange={(e) => setSelectedCompany(e.target.value)}
-                    disabled={selectedAE !== "all"}
-                  >
-                    <option value="all">All Companies</option>
-                    {companyList.map((company) => (
-                      <option key={company} value={company}>
-                        {company}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              <ClientInsights 
-                data={crmData}
-                selectedAE={selectedAE !== "all" ? selectedAE : undefined}
-                selectedCompany={selectedCompany !== "all" ? selectedCompany : undefined}
-              />
+              <ClientInsights data={crmData} />
             </TabsContent>
           </Tabs>
         </>

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import ViewToggle from "./ViewToggle";
 import IntelligenceSummary from "./insights/IntelligenceSummary";
 import KeyFindings from "./insights/KeyFindings";
@@ -9,28 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ClientInsightsProps {
   data: any;
-  selectedAE?: string;
-  selectedCompany?: string;
 }
 
 const ClientInsights: React.FC<ClientInsightsProps> = ({ 
-  data,
-  selectedAE,
-  selectedCompany
+  data
 }) => {
-  const [activeView, setActiveView] = useState<"ae" | "company">("ae");
-
-  // Filter data based on active view and selection
-  const filteredData = React.useMemo(() => {
-    if (!data) return [];
-    
-    if (activeView === "ae" && selectedAE) {
-      return data.filter((item: any) => item.owner === selectedAE);
-    } else if (activeView === "company" && selectedCompany) {
-      return data.filter((item: any) => item.company_name === selectedCompany);
-    }
-    return data;
-  }, [data, activeView, selectedAE, selectedCompany]);
+  const [activeView, setActiveView] = React.useState<"ae" | "company">("ae");
 
   return (
     <div className="space-y-6">
@@ -39,11 +23,11 @@ const ClientInsights: React.FC<ClientInsightsProps> = ({
         <ViewToggle activeView={activeView} onToggle={setActiveView} />
       </div>
       
-      <IntelligenceSummary data={filteredData} />
+      <IntelligenceSummary data={data} />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <KeyFindings data={filteredData} />
+          <KeyFindings data={data} />
         </div>
         <div>
           <Card>
@@ -68,8 +52,8 @@ const ClientInsights: React.FC<ClientInsightsProps> = ({
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SignalDistribution data={filteredData} />
-        <PersonaInsights data={filteredData} />
+        <SignalDistribution data={data} />
+        <PersonaInsights data={data} />
       </div>
       
       <div>
