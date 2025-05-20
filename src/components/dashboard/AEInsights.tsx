@@ -35,7 +35,6 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
   const [objectionResolutionData, setObjectionResolutionData] = useState<any[]>([]);
   const [objectionTypeData, setObjectionTypeData] = useState<any[]>([]);
   const [priorityActionsData, setPriorityActionsData] = useState<any>({});
-  const [upsellOpportunitiesData, setUpsellOpportunitiesData] = useState<any>({});
   const [kpiData, setKpiData] = useState<any>({
     totalDeals: 0,
     totalObjections: 0,
@@ -82,9 +81,6 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
       const priorityActionsResult = extractPriorityActions(deals);
       setPriorityActionsData(priorityActionsResult);
       
-      // Process upsell opportunities data
-      processUpsellOpportunitiesData(deals);
-      
       // Calculate KPIs
       calculateKPIs(deals);
     }
@@ -114,21 +110,6 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     setObjectionResolutionData(chartData);
   };
 
-  // Process upsell opportunities data
-  const processUpsellOpportunitiesData = (deals: any[]) => {
-    const upsellOps = deals.reduce((acc, deal) => {
-      const currentUpsells = extractUpsellOpportunities([deal]);
-      return {
-        total: acc.total + currentUpsells.total,
-        high: acc.high + currentUpsells.high,
-        medium: acc.medium + currentUpsells.medium,
-        low: acc.low + currentUpsells.low
-      };
-    }, { total: 0, high: 0, medium: 0, low: 0 });
-    
-    setUpsellOpportunitiesData(upsellOps);
-  };
-  
   // Calculate top-level KPIs
   const calculateKPIs = (deals: any[]) => {
     // Total deals
@@ -151,16 +132,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
     // High priority actions
     const priorityActions = extractPriorityActions(deals);
     
-    // Successful upsells
-    const upsellOps = deals.reduce((acc, deal) => {
-      const currentUpsells = extractUpsellOpportunities([deal]);
-      return {
-        total: acc.total + currentUpsells.total,
-        high: acc.high + currentUpsells.high,
-      };
-    }, { total: 0, high: 0 });
-    
-    // Calculate average deal size
+    // Average deal size
     const avgDealSize = deals.length > 0 
       ? deals.reduce((sum, deal) => sum + (parseFloat(deal.deal_amount) || 0), 0) / deals.length
       : 0;
@@ -169,7 +141,6 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
       totalDeals,
       totalObjections,
       highPriorityActions: priorityActions.high,
-      successfulUpsells: upsellOps.high,
       averageDealSize: avgDealSize
     });
   };
@@ -305,7 +276,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
         
         {/* Objection Resolution Tab */}
         <TabsContent value="objection-resolution" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {/* Objection Resolution Status */}
             <Card>
               <CardHeader>
@@ -340,78 +311,6 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-            
-            {/* Upsell Opportunities Summary - Simplified */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Upsell Opportunities Analysis
-                </CardTitle>
-                <CardDescription>
-                  Identified expansion opportunities by priority
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="col-span-1">
-                    <ResponsiveContainer width="100%" height={200}>
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'High', value: upsellOpportunitiesData.high, fill: '#FF9800' },
-                            { name: 'Medium', value: upsellOpportunitiesData.medium, fill: '#FFC107' },
-                            { name: 'Low', value: upsellOpportunitiesData.low, fill: '#2196F3' }
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          dataKey="value"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                        </Pie>
-                        <Tooltip formatter={(value: number) => [value, 'Count']} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="col-span-1 grid grid-cols-3 gap-2">
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex flex-col items-center">
-                          <Badge className="mb-2 bg-blue-500">Total</Badge>
-                          <p className="text-2xl font-bold">{upsellOpportunitiesData.total}</p>
-                          <p className="text-xs text-muted-foreground">opportunities</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex flex-col items-center">
-                          <Badge className="mb-2 bg-green-500">Success</Badge>
-                          <p className="text-2xl font-bold">{upsellOpportunitiesData.high}</p>
-                          <p className="text-xs text-muted-foreground">high receptiveness</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex flex-col items-center">
-                          <Badge className="mb-2">Rate</Badge>
-                          <p className="text-2xl font-bold">
-                            {upsellOpportunitiesData.total ? 
-                              Math.round((upsellOpportunitiesData.high / upsellOpportunitiesData.total) * 100) : 
-                              0}%
-                          </p>
-                          <p className="text-xs text-muted-foreground">success rate</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
         
@@ -421,7 +320,7 @@ const AEInsights: React.FC<AEInsightsProps> = ({ crmData, selectedAE }) => {
         </TabsContent>
       </Tabs>
 
-      {/* Action Center - Always visible at the bottom */}
+      {/* Action Center - Without the visualization part */}
       <ActionCenter priorityActions={priorityActionsData} />
     </div>
   );

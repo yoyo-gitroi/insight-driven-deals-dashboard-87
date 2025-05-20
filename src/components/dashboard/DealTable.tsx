@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Eye, ChevronLeft, ChevronRight, Loader } from "lucide-react";
+import { Eye, Loader } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
@@ -13,10 +13,9 @@ interface DealTableProps {
   developerMode: boolean;
 }
 
-const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
-  const [openDrawerId, setOpenDrawerId] = React.useState<number | null>(null);
+const DealTable: React.FC<DealTableProps> = ({ deals, developerMode }) => {
+  const [openDialogId, setOpenDialogId] = useState<number | null>(null);
   const [openSignalId, setOpenSignalId] = useState<number | null>(null);
-
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const itemsPerPage = 5;
@@ -35,7 +34,7 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
     setIsLoading(true);
   
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 600000); // 100000 seconds
+    const timeoutId = setTimeout(() => controller.abort(), 600000);
   
     try {
       const payload = {
@@ -87,7 +86,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
       setIsLoading(false);
     }
   };
-  
 
   const extractStructuredData = (deal: any) => {
     try {
@@ -114,10 +112,12 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
       // Extract action_summary from NBA
       let actionSummary = null;
       let executionPlan = null;
+      let actionTitle = null;
       
       if (nbaData && nbaData.nba_action) {
         actionSummary = nbaData.nba_action.action_summary;
-         executionPlan = nbaData.nba_action.execution_plan;
+        executionPlan = nbaData.nba_action.execution_plan;
+        actionTitle = nbaData.nba_action.action_title;
       }
       
       // Find signal with highest confidence
@@ -160,7 +160,11 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
       }
       
       return {
-        nba: actionSummary || (typeof nbaData === 'string' ? nbaData : JSON.stringify(nbaData)),
+        nba: {
+          actionSummary,
+          executionPlan,
+          actionTitle
+        },
         signal: {
           signal_type: signalType,
           confidence: confidence,
@@ -174,7 +178,11 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
     } catch (error) {
       console.error("Error extracting structured data:", error);
       return {
-        nba: deal.nba,
+        nba: {
+          actionSummary: null,
+          executionPlan: null,
+          actionTitle: null
+        },
         signal: null,
         rawData: {
           nba: deal.nba,
@@ -232,29 +240,6 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
         </HoverCardContent>
       </HoverCard>
     );
-  };
-
-  // Format NBA text to make it more readable - now displays the full text
-  const formatNBA = (nbaText: string) => {
-    if (!nbaText) return "No action available";
-    
-    try {
-      // If it's a JSON string, try to parse it
-      if (typeof nbaText === 'string' && (nbaText.startsWith('{') || nbaText.startsWith('['))) {
-        const parsed = JSON.parse(nbaText);
-        if (parsed && typeof parsed === 'object') {
-          if (parsed.nba_action && parsed.nba_action.action_summary) {
-            return parsed.nba_action.action_summary;
-          }
-        }
-      }
-      
-      // Return the full text without truncation
-      return nbaText;
-    } catch (e) {
-      console.error("Error formatting NBA:", e);
-      return nbaText;
-    }
   };
   
   const renderPagination = () => {
@@ -322,17 +307,14 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
               <TableHead>Deal Name</TableHead>
               <TableHead>Deal Stage</TableHead>
               <TableHead>Signal</TableHead>
-              <TableHead>Recommended Action</TableHead>
-              {/* <TableHead className="text-right">Details</TableHead> */}
+              <TableHead>Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {currentDeals.length > 0 ? (
               currentDeals.map((deal, index) => {
                 const idxGlobal = startIndex + index;
-            
-                const { nba, signal , rawData } = extractStructuredData(deal);
-                console.log("yeh le",rawData.signals)
+                const { nba, signal, rawData } = extractStructuredData(deal);
                 const actualIndex = startIndex + index;
                 
                 return (
@@ -341,187 +323,195 @@ const DealTable: React.FC<DealTableProps> = ({ deals , developerMode}) => {
                     <TableCell>{deal.deal_name}</TableCell>
                     <TableCell>{deal.deal_stage}</TableCell>
                     <TableCell className="relative">
-        {signal && developerMode ? (
-          <>
-            {/* 1) Badge as trigger */}
-            <div
-              onClick={() => setOpenSignalId(idxGlobal)}
-            >
-              <Badge className="cursor-pointer">
-                {signal.signal_type}
-              </Badge>
-            </div>
+                      {signal && developerMode ? (
+                        <div>
+                          <Badge 
+                            className="cursor-pointer"
+                            onClick={() => setOpenSignalId(idxGlobal)}
+                          >
+                            {signal.signal_type}
+                          </Badge>
 
-            {/* 2) Drawer showing JSON */}
-            <div className="flex justify-normal  items-center">
-            <Drawer 
-              open={openSignalId === idxGlobal}
-              onOpenChange={(open) => setOpenSignalId(open ? idxGlobal : null)}
-            >
-              <DrawerContent className="h-full max-h-[900px] max-w-[1100px] mx-auto">
-                <div className="mx-auto w-full max-w-[1100px] ">
-                <DrawerHeader>
-                  <DrawerTitle>Raw Signals JSON</DrawerTitle>
-                  <DrawerDescription>
-                    Signals for {deal.company_name}
-                  </DrawerDescription>
-                </DrawerHeader>
+                          <Dialog 
+                            open={openSignalId === idxGlobal}
+                            onOpenChange={(open) => setOpenSignalId(open ? idxGlobal : null)}
+                          >
+                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Raw Signals JSON</DialogTitle>
+                                <DialogDescription>
+                                  Signals for {deal.company_name}
+                                </DialogDescription>
+                              </DialogHeader>
 
-                <div className="p-4   ">
-                  <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-[600px]">
-                    {JSON.stringify(rawData.signals, null, 2)}
-                  </pre>
-                </div>
+                              <div className="p-4">
+                                <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-[600px]">
+                                  {JSON.stringify(rawData.signals, null, 2)}
+                                </pre>
+                              </div>
 
-                <DrawerFooter className="flex justify-between">
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      navigator.clipboard.writeText(
-                        JSON.stringify(rawData.signals, null, 2)
-                      )
-                    }
-                  >
-                    Copy
-                  </Button>
-                  <Button
-                    variant="default"
-                    onClick={() => setOpenSignalId(null)}
-                  >
-                    Close
-                  </Button>
-                </DrawerFooter>
-                </div>
-              </DrawerContent>
-            </Drawer>
-            </div>
-            
-          </>
-        ) : (
-          getSignalBadge(signal)
-        )}
-      </TableCell>
+                              <DialogFooter className="flex justify-between">
+                                <Button
+                                  variant="outline"
+                                  onClick={() =>
+                                    navigator.clipboard.writeText(
+                                      JSON.stringify(rawData.signals, null, 2)
+                                    )
+                                  }
+                                >
+                                  Copy
+                                </Button>
+                                <Button
+                                  variant="default"
+                                  onClick={() => setOpenSignalId(null)}
+                                >
+                                  Close
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      ) : (
+                        getSignalBadge(signal)
+                      )}
+                    </TableCell>
 
                     <TableCell>
-                      <div className="text-sm bg-slate-50 p-2 rounded-md max-h-24 overflow-y-auto">
-                        {/* {formatNBA(nba)} */}
-                        {JSON.stringify(rawData.nba.nba_action.action_title, null, 2)}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm line-clamp-1 max-w-[220px]">
+                          {nba.actionTitle || "No action available"}
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setOpenDialogId(actualIndex)}
+                          className="flex items-center whitespace-nowrap"
+                        >
+                          <Eye className="h-4 w-4 mr-1" /> Details 
+                        </Button>
                       </div>
-                    {/* </TableCell>
-                    <TableCell className="text-right"> */}
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setOpenDrawerId(actualIndex)}
-                        className="inline-flex items-center justify-center"
-                      >
-                        {/* <Eye className="h-4 w-4 mr-1" />*/} Execute 
-                      </Button>
                       
-                      <Drawer open={openDrawerId === actualIndex} onOpenChange={(open) => {
-                        if (!open) setOpenDrawerId(null);
-                      }}>
-                        <DrawerContent className="w-full  max-w-[900px] mx-auto">
-                          <div className="mx-auto w-full ">
-                            <DrawerHeader>
-                              <DrawerTitle className="text-xl">{deal.company_name}</DrawerTitle>
-                              <DrawerDescription>{deal.deal_name} - {deal.deal_stage}</DrawerDescription>
-                            </DrawerHeader>
-                            
-                            <div className="p-6 w-full max-w-[900px] space-y-6  overflow-y-auto">
-                              {(() => {
-                                const extracted = extractStructuredData(deal);
-                                return (
-                                  <>
-                                    {extracted.nba && (
-                                      <div className="space-y-2">
-                                        <h3 className="text-lg font-semibold">Next Best Action</h3>
-                                        
-                                        <div className="font-medium">Recommended Action</div>
+                      <Dialog 
+                        open={openDialogId === actualIndex} 
+                        onOpenChange={(open) => {
+                          if (!open) setOpenDialogId(null);
+                        }}
+                      >
+                        <DialogContent className="max-w-[800px] max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle className="text-xl">{deal.company_name}</DialogTitle>
+                            <DialogDescription>{deal.deal_name} - {deal.deal_stage}</DialogDescription>
+                          </DialogHeader>
+                          
+                          <div className="p-4 space-y-6">
+                            {(() => {
+                              return (
+                                <>
+                                  {rawData.nba && rawData.nba.nba_action && (
+                                    <div className="space-y-4">
+                                      <h3 className="text-lg font-semibold">Next Best Action</h3>
+                                      
+                                      <div>
+                                        <div className="font-medium mb-1">Recommended Action</div>
                                         <div className="bg-slate-50 p-4 rounded-md">
                                           <p>{rawData.nba.nba_action.action_title}</p>
                                         </div>
-
-                                        <div className="font-medium">Execution Plan</div>
-                                        <div className="bg-slate-50 p-4 rounded-md">
-                                          <p>{rawData.nba.nba_action.execution_plan}</p>
-                                        </div>
-
-                                        <div className="font-medium">Estimated Impact</div>
-                                        <div className="bg-slate-50 p-4 rounded-md">
-                                          <p>{rawData.nba.nba_action.estimated_impact}</p>
-                                        </div>
-
-                                        <div className="font-medium">Estimated Effort</div>
-                                        <div className="bg-slate-50 p-4 rounded-md">
-                                          <p>{rawData.nba.nba_action.estimated_effort}</p>
-                                        </div>
-
-
-                                       
-
-
                                       </div>
-                                    )}
-                                    
-                                    {extracted.signal && (
-                                      <div className="space-y-2">
-                                        <h3 className="text-lg font-semibold">Signal Details</h3>
-                                        <div className="bg-slate-50 p-4 rounded-md space-y-3">
-                                          {extracted.signal.signal_type && (
-                                            <div>
-                                              <span className="font-medium">Signal Type:</span> {extracted.signal.signal_type}
-                                            </div>
-                                          )}
-                                          
-                                          {extracted.signal.confidence && (
-                                            <div>
-                                              <span className="font-medium">Confidence:</span> {extracted.signal.confidence}%
-                                            </div>
-                                          )}
-                                          
-                                          {extracted.signal.supporting_quote && (
-                                            <div>
-                                              <span className="font-medium">Insight Quote:</span>
-                                              <p className="italic text-sm mt-1 pl-2 border-l-2 border-gray-300">
-                                                "{extracted.signal.supporting_quote}"
-                                              </p>
-                                            </div>
-                                          )}
+
+                                      <div>
+                                        <div className="font-medium mb-1">Execution Plan</div>
+                                        <div className="bg-slate-50 p-4 rounded-md">
+                                          <p className="whitespace-pre-line">{rawData.nba.nba_action.execution_plan}</p>
                                         </div>
-                                      </div>  
-                                    )}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                            
-                            <DrawerFooter>
-                              <Button 
-                                className="w-full bg-indigo-600 hover:bg-indigo-700"
-                                onClick={() => handleTakeAction(deal)}
-                                disabled={isLoading}
-                              >
-                                {isLoading ? (
-                                  <>
-                                    <Loader className="h-4 w-4 mr-2 animate-spin" />
-                                    PROCESSING...
-                                  </>
-                                ) : (
-                                  "TAKE ACTION"
-                                )}
-                              </Button>
-                            </DrawerFooter>
+                                      </div>
+
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                          <div className="font-medium mb-1">Estimated Impact</div>
+                                          <div className="bg-green-50 p-4 rounded-md">
+                                            <p>{rawData.nba.nba_action.estimated_impact}</p>
+                                          </div>
+                                        </div>
+
+                                        <div>
+                                          <div className="font-medium mb-1">Estimated Effort</div>
+                                          <div className="bg-blue-50 p-4 rounded-md">
+                                            <p>{rawData.nba.nba_action.estimated_effort}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {signal && (
+                                    <div className="space-y-4">
+                                      <h3 className="text-lg font-semibold">Signal Details</h3>
+                                      <div className="bg-slate-50 p-4 rounded-md space-y-3">
+                                        {signal.signal_type && (
+                                          <div>
+                                            <span className="font-medium">Signal Type:</span> 
+                                            <Badge variant="outline" className="ml-2">
+                                              {signal.signal_type}
+                                            </Badge>
+                                          </div>
+                                        )}
+                                        
+                                        {signal.confidence && (
+                                          <div>
+                                            <span className="font-medium">Confidence:</span> 
+                                            <div className="mt-1 flex items-center">
+                                              <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                                                <div 
+                                                  className="bg-indigo-600 h-2 rounded-full" 
+                                                  style={{ width: `${signal.confidence}%` }}
+                                                ></div>
+                                              </div>
+                                              <span className="text-sm">{signal.confidence}%</span>
+                                            </div>
+                                          </div>
+                                        )}
+                                        
+                                        {signal.supporting_quote && (
+                                          <div>
+                                            <span className="font-medium">Insight Quote:</span>
+                                            <p className="italic text-sm mt-1 pl-2 border-l-2 border-gray-300">
+                                              "{signal.supporting_quote}"
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>  
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
-                        </DrawerContent>
-                      </Drawer>
+                          
+                          <DialogFooter>
+                            <Button 
+                              className="w-full bg-indigo-600 hover:bg-indigo-700"
+                              onClick={() => handleTakeAction(deal)}
+                              disabled={isLoading}
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader className="h-4 w-4 mr-2 animate-spin" />
+                                  Processing...
+                                </>
+                              ) : (
+                                "Execute Action"
+                              )}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </TableCell>
                   </TableRow>
                 );
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={5} className="text-center py-8">
                   No deals found. Select an Account Executive or ensure data is loaded correctly.
                 </TableCell>
               </TableRow>
