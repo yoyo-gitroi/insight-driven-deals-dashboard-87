@@ -167,12 +167,17 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
     
     const signalLower = signalType.toLowerCase();
     
-    if (signalLower.includes('objection')) return "border-l-[#FF6B6B]"; // Red
+    if (signalLower.includes('objection')) {
+      // Handle different objection types with specific colors
+      if (signalLower.includes('integration')) return "border-l-[#FF6B6B]"; // Red
+      if (signalLower.includes('product fit')) return "border-l-[#0EA5E9]"; // Bright Blue for Product Fit
+      if (signalLower.includes('pricing')) return "border-l-[#FF9800]"; // Orange
+      return "border-l-[#FF6B6B]"; // Default objection color is red
+    }
     if (signalLower.includes('expansion')) return "border-l-[#4CAF50]"; // Green
     if (signalLower.includes('discovery')) return "border-l-[#2196F3]"; // Blue
     if (signalLower.includes('technical')) return "border-l-[#9C27B0]"; // Purple
     if (signalLower.includes('financial')) return "border-l-[#FF9800]"; // Orange
-    if (signalLower.includes('integration')) return "border-l-[#FF6B6B]"; // Red (Integration is an objection)
     if (signalLower.includes('confusion')) return "border-l-[#FFC107]"; // Amber
     
     return "border-l-gray-300";
