@@ -31,6 +31,7 @@ const Dashboard = () => {
   const [aeList, setAeList] = useState<string[]>([]);
   const [selectedAE, setSelectedAE] = useState<string>("all");
   const [developerMode, setDeveloperMode] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 
   const handleFileProcessed = (crmSheet: any[]) => {
     if (crmSheet.length) {
@@ -63,13 +64,31 @@ const Dashboard = () => {
     <div className="container mx-auto p-4">
       <div className="flex justify-between"> 
          <h1 className="text-3xl font-bold mb-6">AI-Powered GTM Platform</h1>  
-         <div onClick={() => setDeveloperMode(prev => !prev)}>
-         <Button className={
-    developerMode
-      ? "bg-green-600 text-white hover:bg-white hover:text-green-600"
-      : "bg-gray-200 text-black hover:bg-white hover:text-black"
-  }>Developer Mode</Button>
-</div>
+         <div className="flex space-x-4">
+           <div>
+             <Button 
+               className={viewMode === "cards" ? "bg-blue-600 text-white" : "bg-gray-200 text-black"}
+               onClick={() => setViewMode("cards")}
+             >
+               Card View
+             </Button>
+             <Button 
+               className={viewMode === "table" ? "bg-blue-600 text-white" : "bg-gray-200 text-black"}
+               onClick={() => setViewMode("table")}
+             >
+               Table View
+             </Button>
+           </div>
+           <div onClick={() => setDeveloperMode(prev => !prev)}>
+             <Button className={
+               developerMode
+                 ? "bg-green-600 text-white hover:bg-white hover:text-green-600"
+                 : "bg-gray-200 text-black hover:bg-white hover:text-black"
+             }>
+               Developer Mode
+             </Button>
+           </div>
+         </div>
       </div>
       
       {!fileUploaded ? (
@@ -87,6 +106,7 @@ const Dashboard = () => {
             selectedAE={selectedAE}
             setSelectedAE={setSelectedAE}
             developerMode={developerMode}
+            viewMode={viewMode}
           />
           <div className="mt-8">
             <ObjectionCharts crmData={crmData} />
