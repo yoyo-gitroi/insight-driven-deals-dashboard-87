@@ -1,0 +1,49 @@
+
+/**
+ * Utility function to fetch and process Google Sheets data
+ */
+
+// Function to convert Google Sheets URL to an export URL for CSV
+const getGoogleSheetsExportUrl = (sheetUrl: string): string => {
+  // Extract the sheet ID from the URL
+  const matches = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!matches || matches.length < 2) {
+    throw new Error('Invalid Google Sheets URL format');
+  }
+  
+  const sheetId = matches[1];
+  // Convert to an export URL for CSV format
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+};
+
+// Function to fetch Google Sheets data as CSV and parse it
+export const fetchGoogleSheetsData = async (sheetUrl: string): Promise<any[]> => {
+  try {
+    // Get the export URL
+    const exportUrl = getGoogleSheetsExportUrl(sheetUrl);
+    
+    // Fetch the CSV data
+    const response = await fetch(exportUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch data: ${response.status}`);
+    }
+    
+    const csvText = await response.text();
+    // Parse CSV data using the XLSX library
+    const workbook = await import('xlsx').then(XLSX => {
+      return XLSX.read(csvText, { type: 'string' });
+    });
+    
+    // Convert the first worksheet to JSON
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const jsonData = await import('xlsx').then(XLSX => {
+      return XLSX.utils.sheet_to_json(worksheet);
+    });
+    
+    return jsonData;
+  } catch (error) {
+    console.error('Error fetching Google Sheets data:', error);
+    throw error;
+  }
+};
