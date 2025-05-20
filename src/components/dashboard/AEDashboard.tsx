@@ -72,7 +72,7 @@ const AEDashboard = ({
               )}
             </TabsContent>
             <TabsContent value="insights">
-              <AEInsights />
+              <AEInsights crmData={filteredDeals} selectedAE={selectedAE} />
             </TabsContent>
           </Tabs>
         </CardContent>
