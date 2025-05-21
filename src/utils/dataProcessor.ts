@@ -1,54 +1,56 @@
 
-export interface CRMData {
-  transcripts: string;
-  owner?: string; // Added this property as it's being used in AEDashboard.tsx
-  // Add other properties your CRM data might have
-}
-
-// Add these types to support the GTMStrategy component
-export interface DealAccelerationRisk {
-  "Top 4 Acceleration Opportunities": Array<{
-    opportunity: string;
-    impact: string;
-    next_steps: string;
-  }>;
-  "Top 4 Risk Factors": Array<{
-    risk_type: string;
-    early_warning_signs: string;
-    mitigation_playbooks: string;
-  }>;
-  "Prioritization Framework": string;
-}
-
-export interface StrategicNextActions {
-  "Top 5 Prioritized Actions for Sales Leadership": string[];
-  "Process Improvements": string;
-  "Training & Coaching Plans": string;
-  "Measurement Framework": string;
-}
-
-// Function to process raw data from spreadsheet
-export const processRawData = (rawData: any[]): CRMData[] => {
-  // This is a placeholder implementation. In a real application,
-  // you would transform the raw data into the CRMData format.
-  
-  return rawData.map(row => ({
-    transcripts: row.transcripts || JSON.stringify({}),
-    owner: row.owner || "Unknown",
-    // Map other properties as needed
-  }));
+export type CRMData = {
+  sr_no?: number;
+  company_name?: string;
+  size?: string;
+  deal_name?: string;
+  deal_stage?: string;
+  deal_amount?: number;
+  owner?: string;
+  close_date?: string;
+  nba?: string;
+  signals?: string;
+  actions?: string;
+  transcripts?: string;
+  industry?: string;
+  contact_title?: string;
+  geo?: string;
 };
 
-// Function to extract unique Account Executives from CRM data
-export const extractUniqueAEs = (crmData: CRMData[]): string[] => {
-  // Get all unique AE names from the owner property
-  const uniqueAEs = new Set<string>();
+export const processRawData = (crmSheet: any[]): CRMData[] => {
+  if (!crmSheet.length) {
+    return [];
+  }
   
-  crmData.forEach(deal => {
-    if (deal.owner && typeof deal.owner === 'string') {
-      uniqueAEs.add(deal.owner);
-    }
+  console.log("Raw data received:", crmSheet);
+  
+  // Map the Google Sheets column names to the expected field names
+  const processedCrmData = crmSheet.map(row => {
+    return {
+      sr_no: row['s.no'] || row.sr_no,
+      company_name: row['Company Name'] || row.company_name,
+      size: row['Size'] || row.size,
+      deal_name: row['Deal Name'] || row.deal_name,
+      deal_stage: row['Deal Stage'] || row.deal_stage,
+      deal_amount: parseFloat(row['Deal Amount']) || row.deal_amount,
+      owner: row['Owner'] || row.owner,
+      close_date: row['Close Date'] || row.close_date,
+      nba: row['nba'] || row.nba,
+      signals: row['signals'] || row.signals,
+      actions: row['actions'] || row.actions,
+      transcripts: row['transcripts'] || row.transcripts,
+      industry: row['Industry'] || row.industry,
+      contact_title: row['Contact Title'] || row.contact_title,
+      geo: row['Geo'] || row.geo
+    };
   });
   
-  return Array.from(uniqueAEs).sort();
+  console.log("Processed data:", processedCrmData);
+  return processedCrmData;
+};
+
+export const extractUniqueAEs = (crmData: CRMData[]): string[] => {
+  const uniqueAEs = [...new Set(crmData.map(row => row.owner))].filter(Boolean);
+  console.log("AE List:", uniqueAEs);
+  return uniqueAEs;
 };
