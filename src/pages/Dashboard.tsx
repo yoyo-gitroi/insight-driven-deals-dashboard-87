@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -9,6 +8,7 @@ import ObjectionCharts from "@/components/dashboard/ObjectionCharts";
 import { Button } from "@/components/ui/button";
 import { LoaderComponent } from "@/components/ui/loader";
 import { fetchGoogleSheetsData } from "@/utils/sheetsFetcher";
+import CLInsightsDashboard from "@/components/dashboard/CLInsightsDashboard";
 
 type CRMData = {
   sr_no?: number;
@@ -200,17 +200,23 @@ const Dashboard = () => {
         </Card>
       ) : (
         <>
-          <AEDashboard 
-            crmData={crmData}
-            aeList={aeList}
-            selectedAE={selectedAE}
-            setSelectedAE={setSelectedAE}
-            developerMode={developerMode}
-            viewMode={viewMode}
-          />
-          <div className="mt-8">
-            <ObjectionCharts crmData={crmData} />
-          </div>
+          {dashboardView === "AE" ? (
+            <>
+              <AEDashboard 
+                crmData={crmData}
+                aeList={aeList}
+                selectedAE={selectedAE}
+                setSelectedAE={setSelectedAE}
+                developerMode={developerMode}
+                viewMode={viewMode}
+              />
+              <div className="mt-8">
+                <ObjectionCharts crmData={crmData} />
+              </div>
+            </>
+          ) : (
+            <CLInsightsDashboard />
+          )}
         </>
       )}
     </div>
