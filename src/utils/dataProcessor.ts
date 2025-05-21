@@ -17,6 +17,131 @@ export type CRMData = {
   geo?: string;
 };
 
+// Extended types for CL Insights data
+export type ExecutiveSummary = {
+  "Key Findings": string[];
+  "Aggregate Health Metrics": {
+    "Average Win Probability": string;
+    "Combined ARR Health": string;
+    "Pipeline Coverage vs. Target": string;
+  };
+  "Strategic Context": {
+    "Market Forces": string;
+    "External Events": string;
+  };
+  "Critical Red Flags": string[];
+};
+
+export type SignalCategory = {
+  "Frequency across Portfolio": string;
+  "Top 3 Signals"?: Array<{
+    signal_type: string;
+    avg_confidence: string;
+  }>;
+  "Top 1 Signal"?: Array<{
+    signal_type: string;
+    avg_confidence: string;
+  }>;
+  "Contextual Patterns": string;
+  "Portfolio-Level Recommended Action": string;
+};
+
+export type AEPerformance = {
+  "Top 3 AEs by Win Rate": Array<{
+    ae_name: string;
+    win_rate: string;
+    average_deal_size: string;
+    average_cycle_time: string;
+  }>;
+  "Bottom 3 AEs by Win Rate": Array<{
+    ae_name: string;
+    win_rate: string;
+    average_deal_size: string;
+    average_cycle_time: string;
+  }>;
+  "Training Needs Identified": string[];
+};
+
+export type StakeholderInsights = {
+  "Most Influential Roles": string;
+  "Sentiment Trends by Role": {
+    [role: string]: string;
+  };
+  "Recurring Priorities by Persona": {
+    [persona: string]: string;
+  };
+  "Missing Personas": string[];
+  "Recommended Engagement": string;
+};
+
+export type PatternTrendAnalysis = {
+  "Cross-Company Patterns": string[];
+  "Rising vs. Stable Trends": {
+    "Rising Trends": string;
+    "Stable Trends": string;
+  };
+  "Industry- or Size-Specific Patterns": {
+    [industry: string]: string;
+  };
+  "Temporal Dynamics": string;
+};
+
+export type DealAccelerationRisk = {
+  "Top 4 Acceleration Opportunities": Array<{
+    opportunity: string;
+    impact: string;
+    next_steps: string;
+  }>;
+  "Top 4 Risk Factors": Array<{
+    risk_type: string;
+    early_warning_signs: string;
+    mitigation_playbooks: string;
+  }>;
+  "Prioritization Framework": string;
+};
+
+export type UpsellExpansion = {
+  "Most Successful Upsell Motions": {
+    "Product": string;
+    "Average Fit Score": string;
+    "ARR lift": string;
+  };
+  "Common Expansion Paths": string;
+  "Feature Requests/Gaps Mentioned Repeatedly": string[];
+};
+
+export type ContentRecommendations = {
+  "Case Studies": string[];
+  "Content Gaps by Objection Type": string;
+  "New Content Ideas Tied to Portfolio Signals": string;
+};
+
+export type StrategicNextActions = {
+  "Top 5 Prioritized Actions for Sales Leadership": string[];
+  "Process Improvements": string;
+  "Training & Coaching Plans": string;
+  "Measurement Framework": string;
+};
+
+export type CLInsightsData = {
+  "Portfolio-Level GTM Intelligence Report": {
+    "Executive Summary": ExecutiveSummary;
+    "Primary Signal Categories": {
+      "Objection": SignalCategory;
+      "Confusion": SignalCategory;
+      "Expansion": SignalCategory;
+      "SegmentDrift": SignalCategory;
+    };
+    "Account Executive Performance": AEPerformance;
+    "Stakeholder & Persona Insights": StakeholderInsights;
+    "Pattern & Trend Analysis": PatternTrendAnalysis;
+    "Deal Acceleration & Risk": DealAccelerationRisk;
+    "Upsell & Expansion": UpsellExpansion;
+    "Content & Collateral Recommendations": ContentRecommendations;
+    "Strategic Next Actions": StrategicNextActions;
+  };
+};
+
 export const processRawData = (crmSheet: any[]): CRMData[] => {
   if (!crmSheet.length) {
     return [];

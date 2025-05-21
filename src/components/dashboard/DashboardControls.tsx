@@ -49,12 +49,15 @@ const DashboardControls: React.FC<DashboardControlsProps> = ({
           Table View
         </Button>
       </div>
-      <div onClick={() => setDeveloperMode(prev => !prev)}>
-        <Button className={
-          developerMode
-            ? "bg-green-600 text-white hover:bg-white hover:text-green-600"
-            : "bg-gray-200 text-black hover:bg-white hover:text-black"
-        }>
+      <div>
+        <Button
+          onClick={() => setDeveloperMode(!developerMode)}
+          className={
+            developerMode
+              ? "bg-green-600 text-white hover:bg-white hover:text-green-600"
+              : "bg-gray-200 text-black hover:bg-white hover:text-black"
+          }
+        >
           Developer Mode
         </Button>
       </div>
