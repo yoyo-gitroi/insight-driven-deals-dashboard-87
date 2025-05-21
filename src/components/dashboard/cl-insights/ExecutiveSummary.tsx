@@ -2,6 +2,14 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, TrendingUp, BarChart2, AlertTriangle } from "lucide-react";
+import { 
+  Carousel, 
+  CarouselContent, 
+  CarouselItem, 
+  CarouselNext, 
+  CarouselPrevious 
+} from "@/components/ui/carousel";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface ExecutiveSummaryProps {
   executiveSummary: {
@@ -70,45 +78,61 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ executiveSummary })
         </Card>
       </div>
 
-      {/* Key Findings */}
+      {/* Key Findings Carousel */}
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Key Findings</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-3">
-            {executiveSummary["Key Findings"].map((finding, index) => (
-              <li key={index} className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-medium">
-                  {index + 1}
-                </div>
-                <p className="text-gray-700">{finding}</p>
-              </li>
-            ))}
-          </ul>
+          <Carousel className="w-full">
+            <CarouselContent>
+              {executiveSummary["Key Findings"].map((finding, index) => (
+                <CarouselItem key={index}>
+                  <div className="p-4">
+                    <div className="flex gap-3 items-start">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-medium">
+                        {index + 1}
+                      </div>
+                      <p className="text-gray-700">{finding}</p>
+                    </div>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <div className="flex justify-center mt-4">
+              <CarouselPrevious className="relative inset-auto mr-2" />
+              <CarouselNext className="relative inset-auto ml-2" />
+            </div>
+          </Carousel>
         </CardContent>
       </Card>
 
-      {/* Strategic Context */}
+      {/* Strategic Context Carousel */}
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Strategic Context</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-md font-medium text-gray-800 mb-2">Market Forces</h3>
-              <p className="text-gray-700">{executiveSummary["Strategic Context"]["Market Forces"]}</p>
+          <Carousel className="w-full">
+            <CarouselContent>
+              {Object.entries(executiveSummary["Strategic Context"]).map(([key, value], index) => (
+                <CarouselItem key={index}>
+                  <div className="p-4">
+                    <h3 className="text-md font-medium text-gray-800 mb-2">{key}</h3>
+                    <p className="text-gray-700">{value}</p>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <div className="flex justify-center mt-4">
+              <CarouselPrevious className="relative inset-auto mr-2" />
+              <CarouselNext className="relative inset-auto ml-2" />
             </div>
-            <div>
-              <h3 className="text-md font-medium text-gray-800 mb-2">External Events</h3>
-              <p className="text-gray-700">{executiveSummary["Strategic Context"]["External Events"]}</p>
-            </div>
-          </div>
+          </Carousel>
         </CardContent>
       </Card>
 
-      {/* Critical Red Flags */}
+      {/* Critical Red Flags Carousel */}
       <Card className="border-red-100">
         <CardHeader className="pb-2">
           <CardTitle className="text-xl flex items-center gap-2">
@@ -117,13 +141,26 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ executiveSummary })
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {executiveSummary["Critical Red Flags"].map((flag, index) => (
-              <div key={index} className="p-3 bg-red-50 rounded-lg">
-                <p className="text-red-700">{flag}</p>
-              </div>
-            ))}
-          </div>
+          <Carousel className="w-full">
+            <CarouselContent>
+              {executiveSummary["Critical Red Flags"].map((flag, index) => (
+                <CarouselItem key={index}>
+                  <div className="p-4">
+                    <Alert variant="destructive" className="border-red-200 bg-red-50">
+                      <AlertTitle className="text-red-700">Red Flag #{index + 1}</AlertTitle>
+                      <AlertDescription className="text-red-600">
+                        {flag}
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <div className="flex justify-center mt-4">
+              <CarouselPrevious className="relative inset-auto mr-2" />
+              <CarouselNext className="relative inset-auto ml-2" />
+            </div>
+          </Carousel>
         </CardContent>
       </Card>
     </div>

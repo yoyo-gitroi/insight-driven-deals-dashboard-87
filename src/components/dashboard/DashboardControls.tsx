@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface DashboardControlsProps {
@@ -19,6 +18,12 @@ const DashboardControls: React.FC<DashboardControlsProps> = ({
   developerMode,
   setDeveloperMode
 }) => {
+  const [showInsights, setShowInsights] = useState(false);
+
+  const toggleInsightsView = () => {
+    setShowInsights(!showInsights); // Fix: Instead of passing a function, we directly toggle the value
+  };
+
   return (
     <div className="flex space-x-4">
       <div className="flex space-x-1 bg-gray-200 p-1 rounded-md">
