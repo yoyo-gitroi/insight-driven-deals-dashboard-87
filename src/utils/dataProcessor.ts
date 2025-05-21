@@ -1,92 +1,9 @@
+export interface CRMData {
+  transcripts: string;
+}
 
-export type CRMData = {
-  sr_no?: number;
-  company_name?: string;
-  size?: string;
-  deal_name?: string;
-  deal_stage?: string;
-  deal_amount?: number;
-  owner?: string;
-  close_date?: string;
-  nba?: string;
-  signals?: string;
-  actions?: string;
-  transcripts?: string;
-  industry?: string;
-  contact_title?: string;
-  geo?: string;
-};
-
-// Extended types for CL Insights data
-export type ExecutiveSummary = {
-  "Key Findings": string[];
-  "Aggregate Health Metrics": {
-    "Average Win Probability": string;
-    "Combined ARR Health": string;
-    "Pipeline Coverage vs. Target": string;
-  };
-  "Strategic Context": {
-    "Market Forces": string;
-    "External Events": string;
-  };
-  "Critical Red Flags": string[];
-};
-
-export type SignalCategory = {
-  "Frequency across Portfolio": string;
-  "Top 3 Signals"?: Array<{
-    signal_type: string;
-    avg_confidence: string;
-  }>;
-  "Top 1 Signal"?: Array<{
-    signal_type: string;
-    avg_confidence: string;
-  }>;
-  "Contextual Patterns": string;
-  "Portfolio-Level Recommended Action": string;
-};
-
-export type AEPerformance = {
-  "Top 3 AEs by Win Rate": Array<{
-    ae_name: string;
-    win_rate: string;
-    average_deal_size: string;
-    average_cycle_time: string;
-  }>;
-  "Bottom 3 AEs by Win Rate": Array<{
-    ae_name: string;
-    win_rate: string;
-    average_deal_size: string;
-    average_cycle_time: string;
-  }>;
-  "Training Needs Identified": string[];
-};
-
-export type StakeholderInsights = {
-  "Most Influential Roles": string;
-  "Sentiment Trends by Role": {
-    [role: string]: string;
-  };
-  "Recurring Priorities by Persona": {
-    [persona: string]: string;
-  };
-  "Missing Personas": string[];
-  "Recommended Engagement": string;
-};
-
-export type PatternTrendAnalysis = {
-  "Cross-Company Patterns": string[];
-  "Rising vs. Stable Trends": {
-    "Rising Trends": string;
-    "Stable Trends": string;
-  };
-  "Industry- or Size-Specific Patterns": {
-    [industry: string]: string;
-  };
-  "Temporal Dynamics": string;
-};
-
-export type DealAccelerationRisk = {
+// Add these types to support the GTMStrategy component
+export interface DealAccelerationRisk {
   "Top 4 Acceleration Opportunities": Array<{
     opportunity: string;
     impact: string;
@@ -98,84 +15,11 @@ export type DealAccelerationRisk = {
     mitigation_playbooks: string;
   }>;
   "Prioritization Framework": string;
-};
+}
 
-export type UpsellExpansion = {
-  "Most Successful Upsell Motions": {
-    "Product": string;
-    "Average Fit Score": string;
-    "ARR lift": string;
-  };
-  "Common Expansion Paths": string;
-  "Feature Requests/Gaps Mentioned Repeatedly": string[];
-};
-
-export type ContentRecommendations = {
-  "Case Studies": string[];
-  "Content Gaps by Objection Type": string;
-  "New Content Ideas Tied to Portfolio Signals": string;
-};
-
-export type StrategicNextActions = {
+export interface StrategicNextActions {
   "Top 5 Prioritized Actions for Sales Leadership": string[];
   "Process Improvements": string;
   "Training & Coaching Plans": string;
   "Measurement Framework": string;
-};
-
-export type CLInsightsData = {
-  "Portfolio-Level GTM Intelligence Report": {
-    "Executive Summary": ExecutiveSummary;
-    "Primary Signal Categories": {
-      "Objection": SignalCategory;
-      "Confusion": SignalCategory;
-      "Expansion": SignalCategory;
-      "SegmentDrift": SignalCategory;
-    };
-    "Account Executive Performance": AEPerformance;
-    "Stakeholder & Persona Insights": StakeholderInsights;
-    "Pattern & Trend Analysis": PatternTrendAnalysis;
-    "Deal Acceleration & Risk": DealAccelerationRisk;
-    "Upsell & Expansion": UpsellExpansion;
-    "Content & Collateral Recommendations": ContentRecommendations;
-    "Strategic Next Actions": StrategicNextActions;
-  };
-};
-
-export const processRawData = (crmSheet: any[]): CRMData[] => {
-  if (!crmSheet.length) {
-    return [];
-  }
-  
-  console.log("Raw data received:", crmSheet);
-  
-  // Map the Google Sheets column names to the expected field names
-  const processedCrmData = crmSheet.map(row => {
-    return {
-      sr_no: row['s.no'] || row.sr_no,
-      company_name: row['Company Name'] || row.company_name,
-      size: row['Size'] || row.size,
-      deal_name: row['Deal Name'] || row.deal_name,
-      deal_stage: row['Deal Stage'] || row.deal_stage,
-      deal_amount: parseFloat(row['Deal Amount']) || row.deal_amount,
-      owner: row['Owner'] || row.owner,
-      close_date: row['Close Date'] || row.close_date,
-      nba: row['nba'] || row.nba,
-      signals: row['signals'] || row.signals,
-      actions: row['actions'] || row.actions,
-      transcripts: row['transcripts'] || row.transcripts,
-      industry: row['Industry'] || row.industry,
-      contact_title: row['Contact Title'] || row.contact_title,
-      geo: row['Geo'] || row.geo
-    };
-  });
-  
-  console.log("Processed data:", processedCrmData);
-  return processedCrmData;
-};
-
-export const extractUniqueAEs = (crmData: CRMData[]): string[] => {
-  const uniqueAEs = [...new Set(crmData.map(row => row.owner))].filter(Boolean);
-  console.log("AE List:", uniqueAEs);
-  return uniqueAEs;
-};
+}

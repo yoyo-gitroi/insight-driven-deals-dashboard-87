@@ -126,7 +126,7 @@ const CLInsightsDashboard = () => {
                 }
               ],
               "Contextual Patterns": "Occurs where there are larger teams and a need for more insight and control.",
-              "Portfolio-Level Recommended Action": "Enable AEs to tailor insights to different types of roles that would be within organizations. "
+              "Portfolio-Level Recommended Action": "Enable AEs to tailor insights to different types of roles that would be within organizations."
             }
           },
           "Account Executive Performance": {
@@ -190,7 +190,7 @@ const CLInsightsDashboard = () => {
           "Pattern & Trend Analysis": {
             "Cross-Company Patterns": [
               "Recurring integration concerns across various industries highlight the need for plug-and-play integrations. E.g., in Amplitude, or Domo",
-              "Upsell opportunities typically follow the POC, focusing on Root-cause analysis. "
+              "Upsell opportunities typically follow the POC, focusing on Root-cause analysis."
             ],
             "Rising vs. Stable Trends": {
               "Rising Trends": "Concerns surrounding data security and compliance are on the rise with increasing data volume across all industries.",
@@ -261,7 +261,7 @@ const CLInsightsDashboard = () => {
               "Data from large enterprises and integrations with systems like PowerBI"
             ],
             "Content Gaps by Objection Type": "Material over plug-and-play systems",
-            "New Content Ideas Tied to Portfolio Signals": "Case studies for enterprises. "
+            "New Content Ideas Tied to Portfolio Signals": "Case studies for enterprises."
           },
           "Strategic Next Actions": {
             "Top 5 Prioritized Actions for Sales Leadership": [
@@ -383,7 +383,7 @@ const CLInsightsDashboard = () => {
 
         <TabsContent value="executive">
           <ExecutiveSummary 
-            executiveSummary={report.Executive Summary} 
+            executiveSummary={report["Executive Summary"]} 
             signalCategories={report["Primary Signal Categories"]}
           />
         </TabsContent>
