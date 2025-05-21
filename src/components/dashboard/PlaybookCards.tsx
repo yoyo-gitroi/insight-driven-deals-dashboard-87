@@ -337,10 +337,12 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
                   {/* Recommended Action Section */}
                   <div className="bg-white p-4 rounded-md border border-gray-100">
                     <div className="font-semibold text-sm mb-2">RECOMMENDED ACTION</div>
-                    <div className="font-medium text-sm mb-3">{actionVerb}: {actionTitle}</div>
+                    <div className="text-sm mb-3">{actionVerb}: {actionTitle}</div>
                     
-                    <div className="flex items-center justify-between">
-                      <div>{getPriorityBadge(actionPriority)}</div>
+                    
+                  </div>
+                  <div className="flex items-center justify-between">
+                      {/* <div>{getPriorityBadge(actionPriority)}</div> */}
                       <Button 
                         variant="default" 
                         size="sm" 
@@ -353,7 +355,6 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
                         Execute Action
                       </Button>
                     </div>
-                  </div>
                 </CardContent>
               </Card>
             );

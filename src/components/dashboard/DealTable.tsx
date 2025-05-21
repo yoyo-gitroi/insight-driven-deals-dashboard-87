@@ -378,8 +378,8 @@ const DealTable: React.FC<DealTableProps> = ({ deals, developerMode }) => {
 
                     <TableCell>
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm line-clamp-1 max-w-[220px]">
-                          {nba.actionTitle || "No action available"}
+                        <div className="text-sm ">
+                          {nba.actionTitle }
                         </div>
                         <Button 
                           variant="outline" 
@@ -387,7 +387,7 @@ const DealTable: React.FC<DealTableProps> = ({ deals, developerMode }) => {
                           onClick={() => setOpenDialogId(actualIndex)}
                           className="flex items-center whitespace-nowrap"
                         >
-                          <Eye className="h-4 w-4 mr-1" /> Details 
+                          Execute Action
                         </Button>
                       </div>
                       

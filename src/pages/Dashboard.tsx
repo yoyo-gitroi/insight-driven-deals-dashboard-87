@@ -16,6 +16,7 @@ const Dashboard = () => {
   const [selectedAE, setSelectedAE] = useState<string>("all");
   const [developerMode, setDeveloperMode] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
+  const [data,setData] = useState<any>([]);
   const [isLoading, setIsLoading] = useState(
     location.state && (location.state as any).isLoading === true
   );
@@ -30,8 +31,11 @@ const Dashboard = () => {
   }, [location.state]);
 
   const handleFileProcessed = (crmSheet: any[]) => {
+
     const processedCrmData = processRawData(crmSheet);
-    
+   
+    setData(JSON.stringify(crmSheet[1]));
+    console.log("processedCrmData", processedCrmData);
     if (processedCrmData.length) {
       setCrmData(processedCrmData);
       
@@ -39,7 +43,7 @@ const Dashboard = () => {
       const uniqueAEs = extractUniqueAEs(processedCrmData);
       setAeList(uniqueAEs);
       
-      setFileUploaded(true);
+      setFileUploaded(true);  
       
       // Success toast notification
       toast({
@@ -59,7 +63,7 @@ const Dashboard = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between"> 
-         <h1 className="text-3xl font-bold mb-6">AI-Powered GTM Platform</h1>  
+         <h1 className="text-3xl font-bold mb-6">Aura AI-Powered GTM Platform</h1>  
          <div className="flex space-x-4">
            {fileUploaded && (
              <DashboardControls 
@@ -97,7 +101,7 @@ const Dashboard = () => {
               </div>
             </>
           ) : (
-            <CLInsightsDashboard />
+            <CLInsightsDashboard data={data} />
           )}
         </>
       )}

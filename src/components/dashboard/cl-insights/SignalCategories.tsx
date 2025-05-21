@@ -1,8 +1,10 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { AlertOctagon, HelpCircle, TrendingUp, Users } from "lucide-react";
+
+import { CRMData } from "@/utils/dataProcessor";
 
 // Helper function to parse percentage strings to numbers
 const parsePercentage = (percentStr: string) => {
@@ -45,12 +47,15 @@ interface SignalCategoryProps {
 }
 
 const SignalCategories: React.FC<SignalCategoryProps> = ({ signalCategories }) => {
+  
   return (
-    <div className="space-y-6">
-      <h2 className="text-lg font-medium text-gray-800">Primary Signal Categories Across Portfolio</h2>
+    <>
+    <h2 className="text-lg font-medium text-gray-800">Primary Signal Categories Across Portfolio</h2>
+    <div className=" grid grid-cols-2 gap-8">
+      {/* <h2 className="text-lg font-medium text-gray-800">Primary Signal Categories Across Portfolio</h2> */}
       
       {/* Objections Card */}
-      <Card className="border-l-4 border-l-orange-500">
+      <Card className="  border-l-4 border-l-orange-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertOctagon className="h-5 w-5 text-orange-500" />
@@ -200,7 +205,10 @@ const SignalCategories: React.FC<SignalCategoryProps> = ({ signalCategories }) =
           </div>
         </CardContent>
       </Card>
+
+     
     </div>
+    </>
   );
 };
 

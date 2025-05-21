@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ExecutiveSummary from "./cl-insights/ExecutiveSummary";
@@ -251,16 +251,18 @@ const gtmData = {
   }
 };
 
-const CLInsightsDashboard = () => {
+const CLInsightsDashboard = ({ data }: { data: any }) => {
+  // const gtmData = JSON.parse(data)
+  console.log("data", JSON.parse(data));
   const report = gtmData["Portfolio-Level GTM Intelligence Report"];
 
-  return (
+  return (  
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">GTM Intelligence Report</h1>
+        <h1 className="text-2xl font-bold">Company Level Aura Insights</h1>
         <div className="flex space-x-2">
-          <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">All Companies</Badge>
-          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Q2 2025</Badge>
+          {/* <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">All Companies</Badge>
+          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Q2 2025</Badge> */}
         </div>
       </div>
 

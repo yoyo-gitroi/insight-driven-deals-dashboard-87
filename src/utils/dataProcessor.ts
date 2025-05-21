@@ -25,7 +25,7 @@ export const processRawData = (crmSheet: any[]): CRMData[] => {
   console.log("Raw data received:", crmSheet);
   
   // Map the Google Sheets column names to the expected field names
-  const processedCrmData = crmSheet.map(row => {
+  const processedCrmData = crmSheet[0].map(row => {
     return {
       sr_no: row['s.no'] || row.sr_no,
       company_name: row['Company Name'] || row.company_name,

@@ -44,6 +44,8 @@ export const fetchGoogleSheetsData = async (sheetUrl: string): Promise<any[]> =>
     console.log("Fetched sheet data:", jsonData);
     
     // Map the column names to expected format
+    const clInsights = jsonData[0].cl_insight;
+    
     const processedData = jsonData.map((row: any) => {
       return {
         sr_no: row['s.no'],
@@ -65,7 +67,7 @@ export const fetchGoogleSheetsData = async (sheetUrl: string): Promise<any[]> =>
     });
     
     console.log("Processed sheet data:", processedData);
-    return processedData;
+    return [processedData,clInsights];
   } catch (error) {
     console.error('Error fetching Google Sheets data:', error);
     throw error;
