@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -98,7 +97,7 @@ const Dashboard = () => {
               </div>
             </>
           ) : (
-            <CLInsightsDashboard crmData={crmData} />
+            <CLInsightsDashboard />
           )}
         </>
       )}
