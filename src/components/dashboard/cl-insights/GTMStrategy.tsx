@@ -57,7 +57,7 @@ const GTMStrategy: React.FC<GTMStrategyProps> = ({ riskData, strategicActions })
             ))}
             <div>
               <p className="text-sm font-medium mt-2">Prioritization Framework:</p>
-              <p className="text-sm">{riskData.Prioritization Framework}</p>
+              <p className="text-sm">{riskData["Prioritization Framework"]}</p>
             </div>
           </CardContent>
         </Card>
