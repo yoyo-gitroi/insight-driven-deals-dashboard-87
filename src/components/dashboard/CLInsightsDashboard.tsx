@@ -10,6 +10,7 @@ import TrendAnalysis from "./cl-insights/TrendAnalysis";
 import DealAcceleration from "./cl-insights/DealAcceleration";
 import StrategicActions from "./cl-insights/StrategicActions";
 import { Badge } from "@/components/ui/badge";
+import ObjectionBreakdown from "./insights/ObjectionBreakdown";
 
 // Mock data for the dashboard
 const gtmData = {
@@ -255,6 +256,27 @@ const CLInsightsDashboard = ({ data }: { data: any }) => {
   // const gtmData = JSON.parse(data)
   console.log("data", JSON.parse(data));
   const report = gtmData["Portfolio-Level GTM Intelligence Report"];
+  
+  // Sample objection data for the chart
+  const objectionTypeData = [
+    { name: "Objection::Integration", value: 42 },
+    { name: "Objection::Product Fit", value: 38 },
+    { name: "Objection::Pricing", value: 30 },
+    { name: "Objection::Competitive", value: 27 },
+    { name: "Objection::Technical", value: 22 },
+    { name: "Objection::Timeline", value: 15 }
+  ];
+  
+  // Color mapping for objection types
+  const colorMapping = {
+    "Integration": "#4169E1", // Royal Blue
+    "Product Fit": "#2E8B57", // Sea Green
+    "Pricing": "#B22222", // Firebrick
+    "Competitive": "#FF8C00", // Dark Orange
+    "Technical": "#9932CC", // Dark Orchid
+    "Timeline": "#008080", // Teal
+    "Other": "#696969" // Dim Gray
+  };
 
   return (  
     <div className="w-full">
@@ -282,6 +304,18 @@ const CLInsightsDashboard = ({ data }: { data: any }) => {
         
         <TabsContent value="signals" className="space-y-4">
           <SignalCategories signalCategories={report["Primary Signal Categories"]} />
+          
+          {/* Added Objection Breakdown chart here */}
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-4">CRO Dashboard: Objection Analysis</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ObjectionBreakdown 
+                objectionTypeData={objectionTypeData} 
+                colorMapping={colorMapping} 
+              />
+              {/* You could add more charts here */}
+            </div>
+          </div>
         </TabsContent>
         
         <TabsContent value="performance" className="space-y-4">

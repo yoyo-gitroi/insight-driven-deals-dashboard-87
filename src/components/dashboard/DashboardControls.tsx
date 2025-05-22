@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React from "react";
 import { Button } from "@/components/ui/button";
 
 interface DashboardControlsProps {
@@ -18,14 +19,8 @@ const DashboardControls: React.FC<DashboardControlsProps> = ({
   developerMode,
   setDeveloperMode
 }) => {
-  const [showInsights, setShowInsights] = useState(false);
-
-  const toggleInsightsView = () => {
-    setShowInsights(!showInsights); // Fix: Instead of passing a function, we directly toggle the value
-  };
-
   return (
-    <div className="flex space-x-4">
+    <div className="flex flex-wrap gap-3">
       <div className="flex space-x-1 bg-gray-200 p-1 rounded-md">
         <Button
           onClick={() => setDashboardView("AE")}
@@ -40,26 +35,29 @@ const DashboardControls: React.FC<DashboardControlsProps> = ({
           CL_Insight
         </Button>
       </div>
-      <div>
+      <div className="flex space-x-1 bg-gray-200 p-1 rounded-md">
         <Button
-          className={viewMode === "cards" ? "bg-blue-600 text-white" : "bg-gray-200 text-black"}
+          className={`text-sm ${viewMode === "cards" ? "bg-blue-600 text-white" : "bg-transparent text-black"}`}
           onClick={() => setViewMode("cards")}
         >
           Card View
         </Button>
         <Button
-          className={viewMode === "table" ? "bg-blue-600 text-white" : "bg-gray-200 text-black"}
+          className={`text-sm ${viewMode === "table" ? "bg-blue-600 text-white" : "bg-transparent text-black"}`}
           onClick={() => setViewMode("table")}
         >
           Table View
         </Button>
       </div>
-      <div onClick={() => setDeveloperMode(prev => !prev)}>
-        <Button className={
-          developerMode
-            ? "bg-green-600 text-white hover:bg-white hover:text-green-600"
-            : "bg-gray-200 text-black hover:bg-white hover:text-black"
-        }>
+      <div>
+        <Button 
+          className={
+            developerMode
+              ? "bg-green-600 text-white hover:bg-green-700"
+              : "bg-gray-200 text-black hover:bg-gray-300"
+          }
+          onClick={() => setDeveloperMode(prev => !prev)}
+        >
           Developer Mode
         </Button>
       </div>

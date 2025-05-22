@@ -1,11 +1,13 @@
+
 import React, { useState } from "react";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader, Copy } from "lucide-react";
+import { Loader, ChevronRight, Filter, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { safeJsonParse } from "@/lib/utils";
 
 interface PlaybookCardsProps {
@@ -17,14 +19,64 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
-  const [isExecutionModalOpen, setIsExecutionModalOpen] = useState(false);
+  const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
+  const [filterStage, setFilterStage] = useState<string>("all");
+  const [filterSignalType, setFilterSignalType] = useState<string>("all");
   const itemsPerPage = 5;
   
+  // Unique deal stages for filtering
+  const dealStages = ["all", ...Array.from(new Set(deals.map(deal => deal.deal_stage || "Unknown")))];
+  
+  // Extract signal types for filtering
+  const signalTypes = ["all"];
+  deals.forEach(deal => {
+    try {
+      const signalData = typeof deal.signals === 'string' ? JSON.parse(deal.signals) : deal.signals;
+      if (signalData && signalData.signals && Array.isArray(signalData.signals)) {
+        signalData.signals.forEach((signal: any) => {
+          if (signal.signal_type && !signalTypes.includes(signal.signal_type)) {
+            signalTypes.push(signal.signal_type);
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Error parsing signals:", e);
+    }
+  });
+  
+  // Filter deals based on selected filters
+  const filteredDeals = deals.filter(deal => {
+    if (filterStage !== "all" && deal.deal_stage !== filterStage) {
+      return false;
+    }
+    
+    if (filterSignalType !== "all") {
+      try {
+        const signalData = typeof deal.signals === 'string' ? JSON.parse(deal.signals) : deal.signals;
+        if (!signalData || !signalData.signals || !Array.isArray(signalData.signals)) {
+          return false;
+        }
+        
+        const hasSignalType = signalData.signals.some(
+          (signal: any) => signal.signal_type === filterSignalType
+        );
+        
+        if (!hasSignalType) {
+          return false;
+        }
+      } catch (e) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+  
   // Calculate pagination
-  const totalPages = Math.ceil(deals.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredDeals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentDeals = deals.slice(startIndex, endIndex);
+  const currentDeals = filteredDeals.slice(startIndex, endIndex);
   
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -58,7 +110,7 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
           description: `Action executed successfully for ${deal.company_name}`,
           variant: "default"
         });
-        setIsExecutionModalOpen(false);
+        setIsActionSheetOpen(false);
       } else {
         toast({
           title: "Action Failed",
@@ -90,12 +142,9 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
 
   const extractStructuredData = (deal: any) => {
     try {
-      console.log("Extracting structured data from deal:", deal);
-      
       // Parse data if they are strings
       let nbaData = deal.nba;
       let signalData = deal.signals;
-      let actionData = deal.actions;
       
       if (typeof nbaData === 'string' && nbaData?.trim()) {
         try {
@@ -110,14 +159,6 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
           signalData = JSON.parse(signalData);
         } catch (e) {
           console.error("Error parsing signals JSON:", e);
-        }
-      }
-
-      if (typeof actionData === 'string' && actionData?.trim()) {
-        try {
-          actionData = JSON.parse(actionData);
-        } catch (e) {
-          console.error("Error parsing actions JSON:", e);
         }
       }
       
@@ -146,8 +187,7 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
         nba: nbaAction,
         rawData: {
           nba: nbaData,
-          signals: signalData,
-          actions: actionData
+          signals: signalData
         }
       };
     } catch (error) {
@@ -157,85 +197,10 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
         nba: null,
         rawData: {
           nba: deal.nba,
-          signals: deal.signals,
-          actions: deal.actions
+          signals: deal.signals
         }
       };
     }
-  };
-
-  const getSignalTypeColor = (signalType: string) => {
-    if (!signalType) return "border-gray-300";
-    
-    const signalLower = signalType.toLowerCase();
-    
-    if (signalLower.includes('objection::product fit')) return "border-l-[#2196F3]"; // Blue for Product Fit
-    if (signalLower.includes('objection')) return "border-l-[#FF6B6B]"; // Red for other objections
-    if (signalLower.includes('expansion')) return "border-l-[#4CAF50]"; // Green
-    if (signalLower.includes('discovery')) return "border-l-[#2196F3]"; // Blue
-    if (signalLower.includes('technical')) return "border-l-[#9C27B0]"; // Purple
-    if (signalLower.includes('financial')) return "border-l-[#FF9800]"; // Orange
-    if (signalLower.includes('integration')) return "border-l-[#9C27B0]"; // Purple for Integration
-    if (signalLower.includes('confusion')) return "border-l-[#FFC107]"; // Amber
-    
-    return "border-l-gray-300";
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    if (!priority) return null;
-    
-    const priorityLower = priority.toLowerCase();
-    
-    if (priorityLower === 'high') {
-      return <Badge className="bg-[#FF6B6B] hover:bg-[#FF6B6B]/80">HIGH</Badge>;
-    }
-    if (priorityLower === 'medium') {
-      return <Badge className="bg-[#FFC107] hover:bg-[#FFC107]/80">MEDIUM</Badge>;
-    }
-    if (priorityLower === 'low') {
-      return <Badge className="bg-[#4CAF50] hover:bg-[#4CAF50]/80">LOW</Badge>;
-    }
-    
-    return null;
-  };
-
-  const getSignalTypeBadge = (signalType: string) => {
-    if (!signalType) return "SIGNAL";
-    
-    // Format the signal type for display
-    const formattedType = signalType.toUpperCase();
-    return formattedType;
-  };
-
-  const getDetectionFunction = (signal: any) => {
-    if (!signal) return "detect_signal()";
-
-    const signalType = signal.signal_type || "";
-    
-    if (signalType.toLowerCase().includes('integration')) {
-      return "detect_integration_concerns()";
-    } else if (signalType.toLowerCase().includes('objection')) {
-      return "detect_customer_objection()";
-    } else if (signalType.toLowerCase().includes('expansion')) {
-      return "detect_expansion_opportunity()";
-    } else if (signalType.toLowerCase().includes('technical')) {
-      return "detect_technical_concern()";
-    } else if (signalType.toLowerCase().includes('financial')) {
-      return "detect_financial_concern()";
-    } else if (signalType.toLowerCase().includes('confusion')) {
-      return "detect_customer_confusion()";
-    }
-    
-    return "detect_signal()";
-  };
-
-  const handleCopyExecutionPlan = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast({
-        title: "Copied!",
-        description: "Execution plan copied to clipboard",
-      });
-    });
   };
 
   const renderPagination = () => {
@@ -286,82 +251,143 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
       </Pagination>
     );
   };
+
+  const getRecommendedActionBullets = (nba: any) => {
+    if (!nba || !nba.execution_plan) return [];
+    
+    // Try to split the execution plan into bullet points
+    const text = nba.execution_plan;
+    
+    // Split by number patterns like "1.", "Step 1:", etc.
+    const bulletRegex = /(?:^|\n)(?:\d+\.|\d+\)|\*|\-|Step \d+:)\s*/;
+    const bullets = text.split(bulletRegex).filter(Boolean).map(item => item.trim());
+    
+    // If we couldn't split into meaningful bullets, return whole text
+    if (bullets.length <= 1) {
+      return [text];
+    }
+    
+    return bullets;
+  };
   
   return (
     <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 items-center p-4 bg-white rounded-lg shadow-sm mb-4">
+        <div className="flex items-center space-x-2">
+          <Filter size={16} className="text-gray-500" />
+          <span className="text-sm font-medium text-gray-700">Filters:</span>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
+          <Select value={filterStage} onValueChange={setFilterStage}>
+            <SelectTrigger className="h-9 w-full">
+              <SelectValue placeholder="Deal Stage" />
+            </SelectTrigger>
+            <SelectContent>
+              {dealStages.map((stage) => (
+                <SelectItem key={stage} value={stage}>
+                  {stage === "all" ? "All Stages" : stage}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={filterSignalType} onValueChange={setFilterSignalType}>
+            <SelectTrigger className="h-9 w-full">
+              <SelectValue placeholder="Signal Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {signalTypes.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type === "all" ? "All Signal Types" : type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-5">
         {currentDeals.length > 0 ? (
           currentDeals.map((deal, index) => {
-            console.log("Rendering deal:", deal);
-            const { signal, nba, rawData } = extractStructuredData(deal);
-            const signalType = signal?.signal_type || "";
-            const customerQuote = signal?.supporting_quote || signal?.supporting_quote_customer || "";
-            const signalRaisedBy = signal?.raised_by || "Customer";
-            const signalRaisedByRole = signal?.raised_by_role || "Representative";
-            const actionVerb = nba?.action_verb || "ACTION";
-            const actionTitle = nba?.action_title || "No action available";
-            const actionPriority = nba?.priority || "medium";
-            const detectionFunction = getDetectionFunction(signal);
+            const { signal, nba } = extractStructuredData(deal);
+            const companyName = deal.company_name || "Unknown Company";
+            const dealName = deal.deal_name || "Unknown Deal";
+            const dealStage = deal.deal_stage || "Unknown Stage";
             
-            const companyName = deal.company_name || deal['Company Name'] || "Unknown Company";
-            const dealStage = deal.deal_stage || deal['Deal Stage'] || "Unknown";
+            // Generate recommended action bullets
+            const actionBullets = getRecommendedActionBullets(nba);
             
             return (
               <Card 
                 key={index} 
-                className={`overflow-hidden border-l-4 ${getSignalTypeColor(signalType)} shadow-sm hover:shadow-md transition-all duration-200`}
+                className="overflow-hidden border border-gray-200 shadow-sm hover:shadow transition-all duration-200"
               >
-                <CardHeader className="pb-2 bg-gray-50">
-                  <div className="font-bold text-base text-[#212121]">{companyName}</div>
-                  <div className="text-sm text-gray-600">Deal Stage: {dealStage}</div>
+                <CardHeader className="p-4 pb-2 bg-gray-50 border-b">
+                  <div className="font-bold text-lg text-gray-900">{companyName}</div>
                 </CardHeader>
                 
-                <CardContent className="space-y-4 pt-4">
-                  {/* Signal Section */}
-                  <div className="bg-white p-4 rounded-md border border-gray-100">
-                    <div className="font-semibold text-sm mb-2 flex items-center">
-                      <Badge variant="outline" className="mr-2">{getSignalTypeBadge(signalType)}</Badge>
+                <CardContent className="p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Deal Name</p>
+                      <p className="text-base text-gray-900 truncate">{dealName}</p>
                     </div>
-                    
-                    {customerQuote && (
-                      <div className="mb-2">
-                        <p className="text-sm italic text-[#424242] bg-gray-50 p-3 rounded-md border-l-2 border-gray-200">"{customerQuote}"</p>
-                        <p className="text-xs text-[#757575] mt-1">— {signalRaisedBy}, {signalRaisedByRole}</p>
-                      </div>
-                    )}
-                    
-                    <div className="font-mono text-xs text-[#616161] mt-2 bg-gray-50 p-1 rounded inline-block">{detectionFunction}</div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Deal Stage</p>
+                      <p className="text-base text-gray-900">{dealStage}</p>
+                    </div>
                   </div>
                   
-                  {/* Recommended Action Section */}
-                  <div className="bg-white p-4 rounded-md border border-gray-100">
-                    <div className="font-semibold text-sm mb-2">RECOMMENDED ACTION</div>
-                    <div className="text-sm mb-3">{actionVerb}: {actionTitle}</div>
-                    
-                    
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-2">Signal</p>
+                    {signal && signal.signal_type ? (
+                      <Badge className="mb-2 bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200">
+                        {signal.signal_type}
+                      </Badge>
+                    ) : (
+                      <span className="text-gray-500 text-sm">No signal detected</span>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
-                      {/* <div>{getPriorityBadge(actionPriority)}</div> */}
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                        onClick={() => {
-                          setSelectedDeal(deal);
-                          setIsExecutionModalOpen(true);
-                        }}
-                      >
-                        Execute Action
-                      </Button>
-                    </div>
+                  
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-2">Recommended Action</p>
+                    {actionBullets.length > 0 ? (
+                      <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700">
+                        {actionBullets.slice(0, 2).map((bullet, i) => (
+                          <li key={i} className="truncate">{bullet}</li>
+                        ))}
+                        {actionBullets.length > 2 && (
+                          <li className="text-blue-600">+ {actionBullets.length - 2} more steps...</li>
+                        )}
+                      </ul>
+                    ) : (
+                      <span className="text-gray-500 text-sm">No recommended action</span>
+                    )}
+                  </div>
+                  
+                  <div className="pt-2">
+                    <Button 
+                      variant="default" 
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center gap-2"
+                      onClick={() => {
+                        setSelectedDeal(deal);
+                        setIsActionSheetOpen(true);
+                      }}
+                    >
+                      Execute Action
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
           })
         ) : (
           <div className="text-center py-8 col-span-full bg-gray-50 rounded-lg border border-dashed border-gray-200">
-            <p className="text-gray-600">No deals found. Select an Account Executive or ensure data is loaded correctly.</p>
+            <p className="text-gray-600">No deals found. Try adjusting your filters or ensure data is loaded correctly.</p>
           </div>
         )}
       </div>
@@ -369,126 +395,116 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
       {/* Pagination */}
       {renderPagination()}
       
-      {/* Execution Plan Modal - Improved UI */}
-      <Dialog open={isExecutionModalOpen} onOpenChange={setIsExecutionModalOpen}>
-        <DialogContent className="max-w-[800px] max-h-[80vh] overflow-y-auto p-0">
+      {/* Action Sheet */}
+      <Sheet open={isActionSheetOpen} onOpenChange={setIsActionSheetOpen}>
+        <SheetContent className="sm:max-w-md w-full overflow-y-auto">
           {selectedDeal && (() => {
-            const { nba, signal, rawData } = extractStructuredData(selectedDeal);
-            const companyName = selectedDeal.company_name || selectedDeal['Company Name'] || "Unknown Company";
-            const dealStage = selectedDeal.deal_stage || selectedDeal['Deal Stage'] || "Unknown";
-            const dealName = selectedDeal.deal_name || selectedDeal['Deal Name'] || "Unknown Deal";
+            const { signal, nba } = extractStructuredData(selectedDeal);
+            const companyName = selectedDeal.company_name || "Unknown Company";
+            const dealName = selectedDeal.deal_name || "Unknown Deal";
+            const actionBullets = getRecommendedActionBullets(nba);
             
             return (
-              <>
-                <DialogHeader className="p-6 pb-2 border-b sticky top-0 bg-white z-10">
-                  <DialogTitle className="text-xl text-indigo-700 flex items-center">
-                    <span className="truncate">{companyName}</span>
-                    <Badge variant="outline" className="ml-2">{dealStage}</Badge>
-                  </DialogTitle>
-                  <DialogDescription className="text-gray-600">
-                    {dealName}
-                  </DialogDescription>
-                </DialogHeader>
+              <div className="h-full flex flex-col">
+                <SheetHeader className="border-b pb-4 mb-4">
+                  <SheetTitle className="text-xl">{companyName}</SheetTitle>
+                  <SheetDescription>{dealName}</SheetDescription>
+                </SheetHeader>
                 
-                <div className="p-6 space-y-5">
-                  {nba && (
-                    <div className="space-y-4">
-                      <div className="mb-2">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                          <Badge className="bg-indigo-600">{nba.action_verb || "Action"}</Badge>
-                          {nba.action_title || "Execution Plan"}
-                        </h3>
-                        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 relative">
-                          <p className="text-gray-700 whitespace-pre-line leading-relaxed">{nba.execution_plan}</p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="absolute top-2 right-2"
-                            onClick={() => handleCopyExecutionPlan(nba.execution_plan)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {nba.estimated_impact && (
-                          <div>
-                            <h4 className="font-medium text-gray-800 mb-1">Estimated Impact</h4>
-                            <div className="bg-green-50 p-3 rounded-md border border-green-100 h-full">
-                              <p className="text-gray-700 text-sm">{nba.estimated_impact}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {nba.estimated_effort && (
-                          <div>
-                            <h4 className="font-medium text-gray-800 mb-1">Estimated Effort</h4>
-                            <div className="bg-blue-50 p-3 rounded-md border border-blue-100 h-full">
-                              <p className="text-gray-700 text-sm">{nba.estimated_effort}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                <div className="flex-1 overflow-y-auto space-y-6">
+                  {/* Recommended Action Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Recommended Action</h3>
+                    {actionBullets.length > 0 ? (
+                      <ul className="list-disc pl-5 space-y-2 text-gray-700">
+                        {actionBullets.map((bullet, i) => (
+                          <li key={i}>{bullet}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-500">No recommended action available</p>
+                    )}
+                  </div>
                   
-                  {signal && (
-                    <div className="space-y-3 pt-4 border-t">
-                      <h3 className="text-lg font-semibold text-gray-800">Signal Details</h3>
-                      <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {signal.signal_type && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-500">Signal Type</span>
-                              <div className="mt-1">
-                                <Badge variant="outline" className={
-                                  signal.signal_type.toLowerCase().includes('objection::product fit') ? "bg-blue-100 text-blue-700 border-blue-200" :
-                                  signal.signal_type.toLowerCase().includes('objection') ? "bg-red-100 text-red-700 border-red-200" :
-                                  signal.signal_type.toLowerCase().includes('expansion') ? "bg-green-100 text-green-700 border-green-200" :
-                                  "bg-gray-100 text-gray-700 border-gray-200"
-                                }>
-                                  {signal.signal_type}
-                                </Badge>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {signal.confidence && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-500">Confidence</span>
-                              <div className="mt-1 flex items-center">
-                                <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
-                                  <div 
-                                    className="bg-indigo-600 h-2 rounded-full" 
-                                    style={{ width: `${signal.confidence}%` }}
-                                  ></div>
-                                </div>
-                                <span className="text-sm">{signal.confidence}%</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {signal.supporting_quote && (
-                          <div className="mt-4">
-                            <span className="text-sm font-medium text-gray-500">Supporting Quote</span>
-                            <p className="mt-1 italic text-sm pl-3 border-l-2 border-indigo-300 text-gray-600">
-                              "{signal.supporting_quote}"
-                            </p>
-                            {signal.raised_by && (
-                              <p className="text-xs text-gray-500 mt-1">— {signal.raised_by}{signal.raised_by_role ? `, ${signal.raised_by_role}` : ''}</p>
-                            )}
-                          </div>
+                  {/* Impact and Effort */}
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="bg-green-50 p-3 rounded-md border border-green-100">
+                      <h4 className="text-sm font-medium text-gray-900 mb-1">Estimated Impact</h4>
+                      <p className="text-sm text-gray-700">
+                        {nba?.estimated_impact || "Not specified"}
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                      <h4 className="text-sm font-medium text-gray-900 mb-1">Estimated Effort</h4>
+                      <p className="text-sm text-gray-700">
+                        {nba?.estimated_effort || "Not specified"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Signal Details */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Signal Details</h3>
+                    
+                    <div className="space-y-3 bg-gray-50 p-4 rounded-md">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900 mb-1">Signal Type</h4>
+                        {signal && signal.signal_type ? (
+                          <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
+                            {signal.signal_type}
+                          </Badge>
+                        ) : (
+                          <p className="text-sm text-gray-500">Not available</p>
                         )}
                       </div>
-                    </div>  
-                  )}
+                      
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900 mb-1">Confidence</h4>
+                        {signal && signal.confidence ? (
+                          <div className="flex items-center">
+                            <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                              <div 
+                                className="bg-indigo-600 h-2 rounded-full" 
+                                style={{ width: `${signal.confidence}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm">{signal.confidence}%</span>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500">Not available</p>
+                        )}
+                      </div>
+                      
+                      {signal && signal.supporting_quote && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900 mb-1">Supporting Quote</h4>
+                          <p className="italic text-sm pl-3 border-l-2 border-indigo-300 text-gray-700">
+                            "{signal.supporting_quote}"
+                          </p>
+                          {signal.raised_by && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              — {signal.raised_by}{signal.raised_by_role ? `, ${signal.raised_by_role}` : ''}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Example Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Execution Example</h3>
+                    <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                      <p className="text-sm text-gray-700">
+                        The account executive will send a tailored follow-up email to Jarrett Garcia summarizing—step-by-step—how Bicycle.ai's AI Business Analyst and Data Analyst work together to contextualize and join structured tables, including schema ingestion, query code generation, and human-in-the-loop review/editability. Attach or link to a high-level one-pager or knowledge base article if available. Update CRM with details of technical objection and educational content sent.
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 
-                <DialogFooter className="p-6 border-t bg-gray-50">
+                <div className="border-t mt-6 pt-4">
                   <Button 
-                    className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700"
                     onClick={() => handleTakeAction(selectedDeal)}
                     disabled={isLoading}
                   >
@@ -501,12 +517,12 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
                       "Execute Action"
                     )}
                   </Button>
-                </DialogFooter>
-              </>
+                </div>
+              </div>
             );
           })()}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
