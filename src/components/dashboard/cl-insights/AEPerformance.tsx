@@ -15,11 +15,16 @@ interface AEPerformanceProps {
   aePerformance: {
     "Top 3 AEs by Win Rate": AE[];
     "Bottom 3 AEs by Win Rate": AE[];
-    "Training Needs Identified": string[];
+    "Training Needs Identified": any; // Change to 'any' to accommodate both object and array
   };
 }
 
 const AEPerformance: React.FC<AEPerformanceProps> = ({ aePerformance }) => {
+  // Transform Training Needs into an array format if it's not already an array
+  const trainingNeeds = Array.isArray(aePerformance["Training Needs Identified"])
+    ? aePerformance["Training Needs Identified"]
+    : Object.entries(aePerformance["Training Needs Identified"] || {}).map(([key, value]) => `${key}: ${value}`);
+
   return (
     <div className="space-y-6">
       {/* Top Performers Table */}
@@ -110,7 +115,7 @@ const AEPerformance: React.FC<AEPerformanceProps> = ({ aePerformance }) => {
         </CardHeader>
         <CardContent>
           <ul className="space-y-3">
-            {aePerformance["Training Needs Identified"].map((need, index) => (
+            {trainingNeeds.map((need, index) => (
               <li key={index} className="flex items-start gap-2 border-l-2 border-blue-400 pl-3 py-1">
                 <p>{need}</p>
               </li>

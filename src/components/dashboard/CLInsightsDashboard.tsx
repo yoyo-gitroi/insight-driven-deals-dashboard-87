@@ -80,6 +80,7 @@ const CLInsightsDashboard: React.FC<CLInsightsDashboardProps> = ({ crmData, data
         "average_deal_size": ae.Average_Deal_Size,
         "average_cycle_time": ae.Cycle_Time
       })) || [],
+      // Pass the Training_Needs_Identified data directly without trying to convert it to an array
       "Training Needs Identified": report["3_Account_Executive_Performance"]?.Training_Needs_Identified || {}
     },
     "Stakeholder & Persona Insights": {
