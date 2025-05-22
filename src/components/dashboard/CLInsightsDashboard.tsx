@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,7 +9,7 @@ import TrendAnalysis from "./cl-insights/TrendAnalysis";
 import DealAcceleration from "./cl-insights/DealAcceleration";
 import StrategicActions from "./cl-insights/StrategicActions";
 import { Badge } from "@/components/ui/badge";
-import ObjectionBreakdown from "./insights/ObjectionBreakdown";
+import ObjectionCharts from "./ObjectionCharts";
 
 // Mock data for the dashboard
 const gtmData = {
@@ -305,16 +304,9 @@ const CLInsightsDashboard = ({ data }: { data: any }) => {
         <TabsContent value="signals" className="space-y-4">
           <SignalCategories signalCategories={report["Primary Signal Categories"]} />
           
-          {/* Added Objection Breakdown chart here */}
+          {/* Moved Objection Analysis charts here */}
           <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">CRO Dashboard: Objection Analysis</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ObjectionBreakdown 
-                objectionTypeData={objectionTypeData} 
-                colorMapping={colorMapping} 
-              />
-              {/* You could add more charts here */}
-            </div>
+            <ObjectionCharts crmData={[]} />
           </div>
         </TabsContent>
         

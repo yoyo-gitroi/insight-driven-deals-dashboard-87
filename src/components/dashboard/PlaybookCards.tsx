@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -166,8 +165,8 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
       let primarySignal = null;
       if (signalData && signalData.signals && Array.isArray(signalData.signals)) {
         const sortedSignals = [...signalData.signals].sort((a, b) => {
-          const confA = a.signal_score || 0;
-          const confB = b.signal_score || 0;
+          const confA = a.signal_score || a.confidence || 0;
+          const confB = b.signal_score || b.confidence || 0;
           return confB - confA;
         });
         
@@ -329,7 +328,7 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
                   <div className="font-bold text-lg text-gray-900">{companyName}</div>
                 </CardHeader>
                 
-                <CardContent className="p-4 space-y-3">
+                <CardContent className="p-4 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-gray-500">Deal Name</p>
@@ -353,14 +352,16 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
                   </div>
                   
                   <div>
-                    <p className="text-sm font-medium text-gray-500 mb-2">Recommended Action</p>
+                    <p className="text-sm font-medium text-gray-500 mb-2">RECOMMENDED ACTION</p>
                     {actionBullets.length > 0 ? (
-                      <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700">
-                        {actionBullets.slice(0, 2).map((bullet, i) => (
-                          <li key={i} className="truncate">{bullet}</li>
+                      <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                        {actionBullets.map((bullet, i) => (
+                          <li key={i} className={i >= 2 ? "hidden sm:block" : ""}>
+                            {bullet}
+                          </li>
                         ))}
                         {actionBullets.length > 2 && (
-                          <li className="text-blue-600">+ {actionBullets.length - 2} more steps...</li>
+                          <li className="text-blue-600 sm:hidden">+ {actionBullets.length - 2} more steps...</li>
                         )}
                       </ul>
                     ) : (
@@ -414,7 +415,7 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
                 <div className="flex-1 overflow-y-auto space-y-6">
                   {/* Recommended Action Section */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Recommended Action</h3>
+                    <h3 className="text-lg font-semibold mb-3">1. Recommended Action</h3>
                     {actionBullets.length > 0 ? (
                       <ul className="list-disc pl-5 space-y-2 text-gray-700">
                         {actionBullets.map((bullet, i) => (
@@ -427,28 +428,31 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
                   </div>
                   
                   {/* Impact and Effort */}
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="bg-green-50 p-3 rounded-md border border-green-100">
-                      <h4 className="text-sm font-medium text-gray-900 mb-1">Estimated Impact</h4>
-                      <p className="text-sm text-gray-700">
-                        {nba?.estimated_impact || "Not specified"}
-                      </p>
-                    </div>
-                    <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
-                      <h4 className="text-sm font-medium text-gray-900 mb-1">Estimated Effort</h4>
-                      <p className="text-sm text-gray-700">
-                        {nba?.estimated_effort || "Not specified"}
-                      </p>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">2. Impact and Effort</h3>
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div className="bg-green-50 p-3 rounded-md border border-green-100">
+                        <h4 className="text-sm font-medium text-gray-900 mb-1">Estimated Impact</h4>
+                        <p className="text-sm text-gray-700">
+                          {nba?.estimated_impact || "Not specified"}
+                        </p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                        <h4 className="text-sm font-medium text-gray-900 mb-1">Estimated Effort</h4>
+                        <p className="text-sm text-gray-700">
+                          {nba?.estimated_effort || "Not specified"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                   
                   {/* Signal Details */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Signal Details</h3>
+                    <h3 className="text-lg font-semibold mb-3">3. Signal Details</h3>
                     
                     <div className="space-y-3 bg-gray-50 p-4 rounded-md">
                       <div>
-                        <h4 className="text-sm font-medium text-gray-900 mb-1">Signal Type</h4>
+                        <h4 className="text-sm font-medium text-gray-900 mb-1">4. Signal Type</h4>
                         {signal && signal.signal_type ? (
                           <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
                             {signal.signal_type}
@@ -459,41 +463,27 @@ const PlaybookCards: React.FC<PlaybookCardsProps> = ({ deals, developerMode }) =
                       </div>
                       
                       <div>
-                        <h4 className="text-sm font-medium text-gray-900 mb-1">Confidence</h4>
-                        {signal && signal.confidence ? (
+                        <h4 className="text-sm font-medium text-gray-900 mb-1">5. Confidence</h4>
+                        {signal && (signal.confidence || signal.signal_score) ? (
                           <div className="flex items-center">
                             <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
                               <div 
                                 className="bg-indigo-600 h-2 rounded-full" 
-                                style={{ width: `${signal.confidence}%` }}
+                                style={{ width: `${signal.confidence || signal.signal_score}%` }}
                               ></div>
                             </div>
-                            <span className="text-sm">{signal.confidence}%</span>
+                            <span className="text-sm">{signal.confidence || signal.signal_score}%</span>
                           </div>
                         ) : (
                           <p className="text-sm text-gray-500">Not available</p>
                         )}
                       </div>
-                      
-                      {signal && signal.supporting_quote && (
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 mb-1">Supporting Quote</h4>
-                          <p className="italic text-sm pl-3 border-l-2 border-indigo-300 text-gray-700">
-                            "{signal.supporting_quote}"
-                          </p>
-                          {signal.raised_by && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              — {signal.raised_by}{signal.raised_by_role ? `, ${signal.raised_by_role}` : ''}
-                            </p>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                   
                   {/* Example Section */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Execution Example</h3>
+                    <h3 className="text-lg font-semibold mb-3">6. Execution Example</h3>
                     <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
                       <p className="text-sm text-gray-700">
                         The account executive will send a tailored follow-up email to Jarrett Garcia summarizing—step-by-step—how Bicycle.ai's AI Business Analyst and Data Analyst work together to contextualize and join structured tables, including schema ingestion, query code generation, and human-in-the-loop review/editability. Attach or link to a high-level one-pager or knowledge base article if available. Update CRM with details of technical objection and educational content sent.
