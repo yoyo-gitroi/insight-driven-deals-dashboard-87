@@ -1,144 +1,214 @@
 
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, AlertTriangle, Zap, Info, BarChart2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { AlertOctagon, HelpCircle, TrendingUp, Users } from "lucide-react";
+
+import { CRMData } from "@/utils/dataProcessor";
+
+// Helper function to parse percentage strings to numbers
+const parsePercentage = (percentStr: string) => {
+  if (!percentStr) return 0;
+  return parseFloat(percentStr.replace('%', ''));
+};
 
 interface SignalType {
-  signal: string;
-  context: string;
+  signal_type: string;
+  avg_confidence: string;
 }
 
-interface SignalCategoryData {
-  Frequency?: string;
-  "Frequency across Portfolio"?: string;
-  "Top 3 Signals"?: SignalType[];
-  Contextual_Patterns?: any;
-  "Contextual Patterns"?: any;
-  Portfolio_Level_Recommended_Action?: string;
-  "Portfolio-Level Recommended Action"?: string;
-}
-
-interface SignalCategoriesProps {
+interface SignalCategoryProps {
   signalCategories: {
-    Integration?: SignalCategoryData;
-    "Product Fit"?: SignalCategoryData;
-    Expansion?: SignalCategoryData;
-    "Confusion & Analytics Clarity"?: SignalCategoryData;
-    "Pricing and ROI Doubt"?: SignalCategoryData;
-    [key: string]: SignalCategoryData | undefined;
+    Objection: {
+      "Frequency across Portfolio": string;
+      "Top 3 Signals": SignalType[];
+      "Contextual Patterns": string;
+      "Portfolio-Level Recommended Action": string;
+    };
+    Confusion: {
+      "Frequency across Portfolio": string;
+      "Top 3 Signals": SignalType[];
+      "Contextual Patterns": string;
+      "Portfolio-Level Recommended Action": string;
+    };
+    Expansion: {
+      "Frequency across Portfolio": string;
+      "Top 3 Signals": SignalType[];
+      "Contextual Patterns": string;
+      "Portfolio-Level Recommended Action": string;
+    };
+    SegmentDrift: {
+      "Frequency across Portfolio": string;
+      "Top 1 Signal": SignalType[];
+      "Contextual Patterns": string;
+      "Portfolio-Level Recommended Action": string;
+    };
   };
 }
 
-const SignalCategories: React.FC<SignalCategoriesProps> = ({ signalCategories }) => {
-  if (!signalCategories) {
-    return (
-      <Alert className="bg-yellow-50 text-yellow-800 border-yellow-200">
-        <AlertCircle className="h-4 w-4 text-yellow-800" />
-        <AlertDescription>No signal categories data available.</AlertDescription>
-      </Alert>
-    );
-  }
-
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case "integration":
-        return <Zap className="h-5 w-5 text-blue-600" />;
-      case "product fit":
-        return <AlertTriangle className="h-5 w-5 text-amber-600" />;
-      case "expansion":
-        return <BarChart2 className="h-5 w-5 text-green-600" />;
-      case "pricing and roi doubt":
-        return <AlertCircle className="h-5 w-5 text-red-600" />;
-      default:
-        return <Info className="h-5 w-5 text-purple-600" />;
-    }
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category.toLowerCase()) {
-      case "integration":
-        return "bg-blue-50 border-blue-100";
-      case "product fit":
-        return "bg-amber-50 border-amber-100";
-      case "expansion":
-        return "bg-green-50 border-green-100";
-      case "pricing and roi doubt":
-        return "bg-red-50 border-red-100";
-      case "confusion & analytics clarity":
-        return "bg-purple-50 border-purple-100";
-      default:
-        return "bg-gray-50 border-gray-100";
-    }
-  };
-
-  const categories = Object.keys(signalCategories);
-
+const SignalCategories: React.FC<SignalCategoryProps> = ({ signalCategories }) => {
+  
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {categories.map((category) => {
-        const categoryData = signalCategories[category];
-        if (!categoryData) return null;
-
-        // Handle different property naming conventions
-        const frequency = categoryData.Frequency || categoryData["Frequency across Portfolio"] || "No frequency data";
-        const contextualPatterns = categoryData.Contextual_Patterns || categoryData["Contextual Patterns"] || {};
-        const recommendedAction = categoryData.Portfolio_Level_Recommended_Action || categoryData["Portfolio-Level Recommended Action"] || "No recommended action";
-
-        return (
-          <Card key={category} className={`${getCategoryColor(category)}`}>
-            <CardHeader className="border-b">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    {getCategoryIcon(category)}
-                    {category}
-                  </CardTitle>
-                  <CardDescription>
-                    <Badge className="mt-2 font-normal">
-                      {frequency}
-                    </Badge>
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="space-y-4">
-                {contextualPatterns && typeof contextualPatterns === 'object' && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">Contextual Patterns</h4>
-                    <div className="space-y-1">
-                      {Object.keys(contextualPatterns).map((key) => (
-                        <div key={key} className="text-sm">
-                          <span className="font-medium">{key}: </span>
-                          {contextualPatterns[key] && typeof contextualPatterns[key] === 'object' ? (
-                            <ul className="list-disc pl-5 mt-1">
-                              {Object.entries(contextualPatterns[key]).map(([subKey, value]) => (
-                                <li key={subKey} className="text-sm">
-                                  <span className="font-medium">{subKey}:</span> {String(value)}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <span>{String(contextualPatterns[key])}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+    <>
+    <h2 className="text-lg font-medium text-gray-800">Primary Signal Categories Across Portfolio</h2>
+    <div className=" grid grid-cols-2 gap-8">
+      {/* <h2 className="text-lg font-medium text-gray-800">Primary Signal Categories Across Portfolio</h2> */}
+      
+      {/* Objections Card */}
+      <Card className="  border-l-4 border-l-orange-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertOctagon className="h-5 w-5 text-orange-500" />
+            Objection Signals
+            <span className="ml-auto text-sm font-normal text-gray-500">
+              {signalCategories.Objection["Frequency across Portfolio"]}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="space-y-4">
+              {signalCategories.Objection["Top 3 Signals"].map((signal, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-700">{signal.signal_type}</span>
+                    <span className="text-sm text-gray-500">{signal.avg_confidence}</span>
                   </div>
-                )}
-
-                <div>
-                  <h4 className="text-sm font-semibold mb-2">Recommended Action</h4>
-                  <p className="text-sm">{recommendedAction}</p>
+                  <Progress value={parsePercentage(signal.avg_confidence)} className="h-2 bg-orange-100" indicatorClassName="bg-orange-500" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+              ))}
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium mb-2">Contextual Patterns</h3>
+              <p className="text-sm text-gray-600">{signalCategories.Objection["Contextual Patterns"]}</p>
+            </div>
+            
+            <div className="bg-orange-50 p-3 rounded-md">
+              <h3 className="text-sm font-medium mb-1 text-orange-800">Recommended Action</h3>
+              <p className="text-sm text-orange-700">{signalCategories.Objection["Portfolio-Level Recommended Action"]}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Confusion Card */}
+      <Card className="border-l-4 border-l-purple-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <HelpCircle className="h-5 w-5 text-purple-500" />
+            Confusion Signals
+            <span className="ml-auto text-sm font-normal text-gray-500">
+              {signalCategories.Confusion["Frequency across Portfolio"]}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="space-y-4">
+              {signalCategories.Confusion["Top 3 Signals"].map((signal, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-700">{signal.signal_type}</span>
+                    <span className="text-sm text-gray-500">{signal.avg_confidence}</span>
+                  </div>
+                  <Progress value={parsePercentage(signal.avg_confidence)} className="h-2 bg-purple-100" indicatorClassName="bg-purple-500" />
+                </div>
+              ))}
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium mb-2">Contextual Patterns</h3>
+              <p className="text-sm text-gray-600">{signalCategories.Confusion["Contextual Patterns"]}</p>
+            </div>
+            
+            <div className="bg-purple-50 p-3 rounded-md">
+              <h3 className="text-sm font-medium mb-1 text-purple-800">Recommended Action</h3>
+              <p className="text-sm text-purple-700">{signalCategories.Confusion["Portfolio-Level Recommended Action"]}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Expansion Card */}
+      <Card className="border-l-4 border-l-green-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-green-500" />
+            Expansion Signals
+            <span className="ml-auto text-sm font-normal text-gray-500">
+              {signalCategories.Expansion["Frequency across Portfolio"]}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="space-y-4">
+              {signalCategories.Expansion["Top 3 Signals"].map((signal, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-700">{signal.signal_type}</span>
+                    <span className="text-sm text-gray-500">{signal.avg_confidence}</span>
+                  </div>
+                  <Progress value={parsePercentage(signal.avg_confidence)} className="h-2 bg-green-100" indicatorClassName="bg-green-500" />
+                </div>
+              ))}
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium mb-2">Contextual Patterns</h3>
+              <p className="text-sm text-gray-600">{signalCategories.Expansion["Contextual Patterns"]}</p>
+            </div>
+            
+            <div className="bg-green-50 p-3 rounded-md">
+              <h3 className="text-sm font-medium mb-1 text-green-800">Recommended Action</h3>
+              <p className="text-sm text-green-700">{signalCategories.Expansion["Portfolio-Level Recommended Action"]}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Segment Drift Card */}
+      <Card className="border-l-4 border-l-blue-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-blue-500" />
+            Segment Drift Signals
+            <span className="ml-auto text-sm font-normal text-gray-500">
+              {signalCategories.SegmentDrift["Frequency across Portfolio"]}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="space-y-4">
+              {signalCategories.SegmentDrift["Top 1 Signal"].map((signal, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-700">{signal.signal_type}</span>
+                    <span className="text-sm text-gray-500">{signal.avg_confidence}</span>
+                  </div>
+                  <Progress value={parsePercentage(signal.avg_confidence)} className="h-2 bg-blue-100" indicatorClassName="bg-blue-500" />
+                </div>
+              ))}
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium mb-2">Contextual Patterns</h3>
+              <p className="text-sm text-gray-600">{signalCategories.SegmentDrift["Contextual Patterns"]}</p>
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-md">
+              <h3 className="text-sm font-medium mb-1 text-blue-800">Recommended Action</h3>
+              <p className="text-sm text-blue-700">{signalCategories.SegmentDrift["Portfolio-Level Recommended Action"]}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+     
     </div>
+    </>
   );
 };
 
