@@ -1,22 +1,13 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import { ListFilter, LayoutGrid, Code, Database } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 interface DashboardControlsProps {
   dashboardView: "AE" | "CL_Insight";
-  setDashboardView: React.Dispatch<React.SetStateAction<"AE" | "CL_Insight">>;
+  setDashboardView: (view: "AE" | "CL_Insight") => void;
   viewMode: "table" | "cards";
-  setViewMode: React.Dispatch<React.SetStateAction<"table" | "cards">>;
+  setViewMode: (mode: "table" | "cards") => void;
   developerMode: boolean;
-  setDeveloperMode: React.Dispatch<React.SetStateAction<boolean>>;
+  setDeveloperMode: (mode: boolean) => void;
 }
 
 const DashboardControls: React.FC<DashboardControlsProps> = ({
@@ -27,49 +18,51 @@ const DashboardControls: React.FC<DashboardControlsProps> = ({
   developerMode,
   setDeveloperMode
 }) => {
-  return (
-    <div className="flex items-center space-x-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center gap-2">
-            <ListFilter className="h-4 w-4" />
-            <span className="hidden sm:inline">Dashboard View</span>
-            <Badge variant="secondary" className="ml-1">
-              {dashboardView === "AE" ? "AE" : "CL Insights"}
-            </Badge>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setDashboardView("AE")}>
-            AE Dashboard
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setDashboardView("CL_Insight")}>
-            CL Insights
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+  const [showInsights, setShowInsights] = useState(false);
 
-      {dashboardView === "AE" && (
+  const toggleInsightsView = () => {
+    setShowInsights(!showInsights); // Fix: Instead of passing a function, we directly toggle the value
+  };
+
+  return (
+    <div className="flex space-x-4">
+      <div className="flex space-x-1 bg-gray-200 p-1 rounded-md">
         <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setViewMode(viewMode === "table" ? "cards" : "table")}
-          className="relative"
-          title={viewMode === "table" ? "Switch to Card View" : "Switch to Table View"}
+          onClick={() => setDashboardView("AE")}
+          className={`text-sm ${dashboardView === "AE" ? "bg-blue-600 text-white" : "bg-transparent text-black"}`}
         >
-          <LayoutGrid className="h-4 w-4" />
+          AE
         </Button>
-      )}
-      
-      <Button
-        variant={developerMode ? "default" : "outline"}
-        size="icon"
-        onClick={() => setDeveloperMode(!developerMode)}
-        className={`relative ${developerMode ? "bg-indigo-600" : ""}`}
-        title="Toggle Developer Mode"
-      >
-        <Code className="h-4 w-4" />
-      </Button>
+        <Button
+          onClick={() => setDashboardView("CL_Insight")}
+          className={`text-sm ${dashboardView === "CL_Insight" ? "bg-blue-600 text-white" : "bg-transparent text-black"}`}
+        >
+          CL_Insight
+        </Button>
+      </div>
+      <div>
+        <Button
+          className={viewMode === "cards" ? "bg-blue-600 text-white" : "bg-gray-200 text-black"}
+          onClick={() => setViewMode("cards")}
+        >
+          Card View
+        </Button>
+        <Button
+          className={viewMode === "table" ? "bg-blue-600 text-white" : "bg-gray-200 text-black"}
+          onClick={() => setViewMode("table")}
+        >
+          Table View
+        </Button>
+      </div>
+      <div onClick={() => setDeveloperMode(prev => !prev)}>
+        <Button className={
+          developerMode
+            ? "bg-green-600 text-white hover:bg-white hover:text-green-600"
+            : "bg-gray-200 text-black hover:bg-white hover:text-black"
+        }>
+          Developer Mode
+        </Button>
+      </div>
     </div>
   );
 };
