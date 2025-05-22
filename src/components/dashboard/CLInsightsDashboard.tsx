@@ -251,7 +251,12 @@ const gtmData = {
   }
 };
 
-const CLInsightsDashboard = ({ data }: { data: any }) => {
+interface CLInsightsDashboardProps {
+  crmData: any[];
+  data: any;
+}
+
+const CLInsightsDashboard: React.FC<CLInsightsDashboardProps> = ({ crmData, data }) => {
   // const gtmData = JSON.parse(data)
   console.log("data", JSON.parse(data));
   const report = gtmData["Portfolio-Level GTM Intelligence Report"];
@@ -304,9 +309,9 @@ const CLInsightsDashboard = ({ data }: { data: any }) => {
         <TabsContent value="signals" className="space-y-4">
           <SignalCategories signalCategories={report["Primary Signal Categories"]} />
           
-          {/* Moved Objection Analysis charts here */}
+          {/* Objection Analysis Charts */}
           <div className="mt-8">
-            <ObjectionCharts crmData={[]} />
+            <ObjectionCharts crmData={crmData} />
           </div>
         </TabsContent>
         

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import AEDashboard from "@/components/dashboard/AEDashboard";
-import ObjectionCharts from "@/components/dashboard/ObjectionCharts";
 import CLInsightsDashboard from "@/components/dashboard/CLInsightsDashboard";
 import DataLoader from "@/components/dashboard/DataLoader";
 import DashboardControls from "@/components/dashboard/DashboardControls";
@@ -31,7 +30,6 @@ const Dashboard = () => {
   }, [location.state]);
 
   const handleFileProcessed = (crmSheet: any[]) => {
-
     const processedCrmData = processRawData(crmSheet);
    
     setData(JSON.stringify(crmSheet[1]));
@@ -87,21 +85,16 @@ const Dashboard = () => {
       ) : (
         <>
           {dashboardView === "AE" ? (
-            <>
-              <AEDashboard 
-                crmData={crmData}
-                aeList={aeList}
-                selectedAE={selectedAE}
-                setSelectedAE={setSelectedAE}
-                developerMode={developerMode}
-                viewMode={viewMode}
-              />
-              <div className="mt-8">
-                <ObjectionCharts crmData={crmData} />
-              </div>
-            </>
+            <AEDashboard 
+              crmData={crmData}
+              aeList={aeList}
+              selectedAE={selectedAE}
+              setSelectedAE={setSelectedAE}
+              developerMode={developerMode}
+              viewMode={viewMode}
+            />
           ) : (
-            <CLInsightsDashboard data={data} />
+            <CLInsightsDashboard crmData={crmData} data={data} />
           )}
         </>
       )}
