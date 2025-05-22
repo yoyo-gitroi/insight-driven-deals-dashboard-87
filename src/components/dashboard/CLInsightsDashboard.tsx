@@ -1,15 +1,5 @@
-import React, { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import ExecutiveSummary from "./cl-insights/ExecutiveSummary";
-import SignalCategories from "./cl-insights/SignalCategories";
-import AEPerformance from "./cl-insights/AEPerformance";
-import StakeholderInsights from "./cl-insights/StakeholderInsights";
-import TrendAnalysis from "./cl-insights/TrendAnalysis";
-import DealAcceleration from "./cl-insights/DealAcceleration";
-import StrategicActions from "./cl-insights/StrategicActions";
-import { Badge } from "@/components/ui/badge";
-import ObjectionCharts from "./ObjectionCharts";
+import React from "react";
+import CLInsightsTabManager from "./cl-insights/CLInsightsTabManager";
 
 // Mock data for the dashboard
 const gtmData = {
@@ -257,87 +247,19 @@ interface CLInsightsDashboardProps {
 }
 
 const CLInsightsDashboard: React.FC<CLInsightsDashboardProps> = ({ crmData, data }) => {
-  // const gtmData = JSON.parse(data)
+  // For debugging
   console.log("data", JSON.parse(data));
+  
+  // Extract the report data
   const report = gtmData["Portfolio-Level GTM Intelligence Report"];
   
-  // Sample objection data for the chart
-  const objectionTypeData = [
-    { name: "Objection::Integration", value: 42 },
-    { name: "Objection::Product Fit", value: 38 },
-    { name: "Objection::Pricing", value: 30 },
-    { name: "Objection::Competitive", value: 27 },
-    { name: "Objection::Technical", value: 22 },
-    { name: "Objection::Timeline", value: 15 }
-  ];
-  
-  // Color mapping for objection types
-  const colorMapping = {
-    "Integration": "#4169E1", // Royal Blue
-    "Product Fit": "#2E8B57", // Sea Green
-    "Pricing": "#B22222", // Firebrick
-    "Competitive": "#FF8C00", // Dark Orange
-    "Technical": "#9932CC", // Dark Orchid
-    "Timeline": "#008080", // Teal
-    "Other": "#696969" // Dim Gray
-  };
-
   return (  
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Company Level Aura Insights</h1>
-        <div className="flex space-x-2">
-          {/* <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">All Companies</Badge>
-          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Q2 2025</Badge> */}
-        </div>
       </div>
 
-      <Tabs defaultValue="executive-summary" className="w-full mb-8">
-        <TabsList className="mb-4 bg-gray-100 p-1 rounded-lg">
-          <TabsTrigger value="executive-summary" className="rounded-md">Executive Summary</TabsTrigger>
-          <TabsTrigger value="signals" className="rounded-md">Signal Detection</TabsTrigger>
-          <TabsTrigger value="performance" className="rounded-md">AE Performance</TabsTrigger>
-          <TabsTrigger value="stakeholders" className="rounded-md">Stakeholders</TabsTrigger>
-          <TabsTrigger value="trends" className="rounded-md">Trends & Patterns</TabsTrigger>
-          <TabsTrigger value="strategy" className="rounded-md">Strategic Actions</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="executive-summary" className="space-y-4">
-          <ExecutiveSummary executiveSummary={report["Executive Summary"]} />
-        </TabsContent>
-        
-        <TabsContent value="signals" className="space-y-4">
-          <SignalCategories signalCategories={report["Primary Signal Categories"]} />
-          
-          {/* Objection Analysis Charts */}
-          <div className="mt-8">
-            <ObjectionCharts crmData={crmData} />
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="performance" className="space-y-4">
-          <AEPerformance aePerformance={report["Account Executive Performance"]} />
-        </TabsContent>
-        
-        <TabsContent value="stakeholders" className="space-y-4">
-          <StakeholderInsights stakeholderInsights={report["Stakeholder & Persona Insights"]} />
-        </TabsContent>
-        
-        <TabsContent value="trends" className="space-y-4">
-          <TrendAnalysis 
-            trendAnalysis={report["Pattern & Trend Analysis"]}
-            upsellExpansion={report["Upsell & Expansion"]} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="strategy" className="space-y-4">
-          <DealAcceleration dealAcceleration={report["Deal Acceleration & Risk"]} />
-          <StrategicActions 
-            strategicActions={report["Strategic Next Actions"]} 
-            contentRecommendations={report["Content & Collateral Recommendations"]} 
-          />
-        </TabsContent>
-      </Tabs>
+      <CLInsightsTabManager report={report} crmData={crmData} />
     </div>
   );
 };

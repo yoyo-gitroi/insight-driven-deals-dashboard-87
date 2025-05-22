@@ -1,17 +1,8 @@
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChartPie } from "lucide-react";
-import { 
-  ChartContainer, 
-  ChartLegend, 
-  ChartLegendContent, 
-  ChartTooltip, 
-  ChartTooltipContent 
-} from "@/components/ui/chart";
-import { PieChart, Pie, Cell } from "recharts";
 import { safeJsonParse } from "@/lib/utils";
+import ObjectionPieChart from "./objections/ObjectionPieChart";
 
 interface ObjectionChartsProps {
   crmData: any[];
@@ -115,9 +106,14 @@ const ObjectionCharts: React.FC<ObjectionChartsProps> = ({ crmData }) => {
     console.log("Geo objections:", geoData);
   };
 
+  // Generate config names for each chart type
+  const industryConfigNames = Array.from({ length: 9 }, (_, i) => `industry${i + 1}`);
+  const titleConfigNames = Array.from({ length: 9 }, (_, i) => `title${i + 1}`);
+  const geoConfigNames = Array.from({ length: 9 }, (_, i) => `geo${i + 1}`);
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">CRO Dashboard: Objection Analysis</h2>
+      <h2 className="text-2xl font-bold">Signal Detection: Objection Analysis</h2>
       
       <Tabs defaultValue="industry" className="w-full">
         <TabsList className="grid grid-cols-3 w-full">
@@ -128,158 +124,32 @@ const ObjectionCharts: React.FC<ObjectionChartsProps> = ({ crmData }) => {
         
         {/* Industry Tab */}
         <TabsContent value="industry" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ChartPie className="h-5 w-5" />
-                Number of Objections by Industry
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-96">
-              {industryObjections.length > 0 ? (
-                <ChartContainer
-                  config={{
-                    industry1: { color: COLORS[0] },
-                    industry2: { color: COLORS[1] },
-                    industry3: { color: COLORS[2] },
-                    industry4: { color: COLORS[3] },
-                    industry5: { color: COLORS[4] },
-                    industry6: { color: COLORS[5] },
-                    industry7: { color: COLORS[6] },
-                    industry8: { color: COLORS[7] },
-                    industry9: { color: COLORS[8] },
-                  }}
-                >
-                  <PieChart>
-                    <Pie
-                      data={industryObjections}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={150}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {industryObjections.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent className="mt-6" />} />
-                  </PieChart>
-                </ChartContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">No objection data available for industries</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ObjectionPieChart
+            title="Number of Objections by Industry"
+            data={industryObjections}
+            colors={COLORS}
+            configNames={industryConfigNames}
+          />
         </TabsContent>
         
         {/* Contact Title Tab */}
         <TabsContent value="title" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ChartPie className="h-5 w-5" />
-                Number of Objections by Contact Title
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-96">
-              {titleObjections.length > 0 ? (
-                <ChartContainer
-                  config={{
-                    title1: { color: COLORS[0] },
-                    title2: { color: COLORS[1] },
-                    title3: { color: COLORS[2] },
-                    title4: { color: COLORS[3] },
-                    title5: { color: COLORS[4] },
-                    title6: { color: COLORS[5] },
-                    title7: { color: COLORS[6] },
-                    title8: { color: COLORS[7] },
-                    title9: { color: COLORS[8] },
-                  }}
-                >
-                  <PieChart>
-                    <Pie
-                      data={titleObjections}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={150}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {titleObjections.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent className="mt-6" />} />
-                  </PieChart>
-                </ChartContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">No objection data available for contact titles</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ObjectionPieChart
+            title="Number of Objections by Contact Title"
+            data={titleObjections}
+            colors={COLORS}
+            configNames={titleConfigNames}
+          />
         </TabsContent>
         
         {/* Geography Tab */}
         <TabsContent value="geography" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ChartPie className="h-5 w-5" />
-                Number of Objections by Geography
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-96">
-              {geoObjections.length > 0 ? (
-                <ChartContainer
-                  config={{
-                    geo1: { color: COLORS[0] },
-                    geo2: { color: COLORS[1] },
-                    geo3: { color: COLORS[2] },
-                    geo4: { color: COLORS[3] },
-                    geo5: { color: COLORS[4] },
-                    geo6: { color: COLORS[5] },
-                    geo7: { color: COLORS[6] },
-                    geo8: { color: COLORS[7] },
-                    geo9: { color: COLORS[8] },
-                  }}
-                >
-                  <PieChart>
-                    <Pie
-                      data={geoObjections}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={150}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {geoObjections.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent className="mt-6" />} />
-                  </PieChart>
-                </ChartContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">No objection data available for geographies</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ObjectionPieChart
+            title="Number of Objections by Geography"
+            data={geoObjections}
+            colors={COLORS}
+            configNames={geoConfigNames}
+          />
         </TabsContent>
       </Tabs>
     </div>
