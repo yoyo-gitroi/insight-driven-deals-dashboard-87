@@ -1,13 +1,17 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Database, Users } from "lucide-react";
+import { TrendingUp, Database, Users, Loader } from "lucide-react";
 
 interface MarketContextVisualizationProps {
   context: string[];
+  isLoading?: boolean;
 }
 
-const MarketContextVisualization: React.FC<MarketContextVisualizationProps> = ({ context = [] }) => {
+const MarketContextVisualization: React.FC<MarketContextVisualizationProps> = ({ 
+  context = [], 
+  isLoading = false 
+}) => {
   // Map context items to specific categories with icons
   const categorizedContext = [
     {
@@ -35,17 +39,24 @@ const MarketContextVisualization: React.FC<MarketContextVisualizationProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
-        <div className="space-y-3 max-h-[180px] overflow-y-auto">
-          {categorizedContext.map((item, index) => (
-            <div key={index} className="flex items-start gap-3 p-2 hover:bg-blue-50 rounded-lg transition-colors">
-              <div className="flex-shrink-0 mt-1">{item.icon}</div>
-              <div>
-                <h4 className="text-sm font-medium text-blue-800">{item.title}</h4>
-                <p className="text-xs text-gray-700 line-clamp-2">{item.description}</p>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader className="h-5 w-5 text-blue-500 animate-spin mb-2" />
+            <p className="text-sm text-gray-600">Loading market context...</p>
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-[180px] overflow-y-auto">
+            {categorizedContext.map((item, index) => (
+              <div key={index} className="flex items-start gap-3 p-2 hover:bg-blue-50 rounded-lg transition-colors">
+                <div className="flex-shrink-0 mt-1">{item.icon}</div>
+                <div>
+                  <h4 className="text-sm font-medium text-blue-800">{item.title}</h4>
+                  <p className="text-xs text-gray-700 line-clamp-2">{item.description}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

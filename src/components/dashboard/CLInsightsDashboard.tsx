@@ -5,6 +5,7 @@ import { safeJsonParse } from "@/lib/utils";
 import HeroMetricsCard from "./cl-insights/dashboard/HeroMetricsCard";
 import StrategicAlertBanner from "./cl-insights/dashboard/StrategicAlertBanner";
 import MarketContextVisualization from "./cl-insights/dashboard/MarketContextVisualization";
+import { LoaderComponent } from "@/components/ui/loader";
 
 interface CLInsightsDashboardProps {
   crmData: any[];
@@ -13,14 +14,18 @@ interface CLInsightsDashboardProps {
 
 const CLInsightsDashboard: React.FC<CLInsightsDashboardProps> = ({ crmData, data }) => {
   const [parsedData, setParsedData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   
   useEffect(() => {
     try {
       const parsed = typeof data === 'string' ? safeJsonParse(data) : data;
+      console.log("Parsing data:", data);
       setParsedData(parsed);
       console.log("Parsed data:", parsed);
+      setIsLoading(false);
     } catch (error) {
       console.error("Error parsing data:", error);
+      setIsLoading(false);
     }
   }, [data]);
   
@@ -28,10 +33,21 @@ const CLInsightsDashboard: React.FC<CLInsightsDashboardProps> = ({ crmData, data
   const report = parsedData?.["Portfolio-Level GTM Intelligence Report"] || 
                 parsedData?.["Portfolio-Level_GTM_Intelligence_Insights"];
   
-  if (!report) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-500">Loading data...</div>
+        <LoaderComponent size="md" text="Processing dashboard data..." />
+      </div>
+    );
+  }
+  
+  if (!report) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="text-lg text-red-500 font-medium mb-2">No report data available</div>
+        <div className="text-sm text-gray-500 max-w-md text-center">
+          Please ensure that the uploaded data contains the required report information or try uploading the file again.
+        </div>
       </div>
     );
   }
@@ -192,7 +208,10 @@ const CLInsightsDashboard: React.FC<CLInsightsDashboardProps> = ({ crmData, data
           <h2 className="text-xl font-semibold mb-4 text-indigo-800">Executive Command Center</h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <HeroMetricsCard />
-            <StrategicAlertBanner redFlags={mappedReport["Executive Summary"]["Critical Red Flags"]} />
+            <StrategicAlertBanner 
+              redFlags={mappedReport["Executive Summary"]["Critical Red Flags"]} 
+              isLoading={isLoading} 
+            />
             <MarketContextVisualization context={mappedReport["Executive Summary"]["Strategic Context"]} />
           </div>
         </div>
