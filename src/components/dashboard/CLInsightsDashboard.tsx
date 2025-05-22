@@ -6,6 +6,9 @@ import HeroMetricsCard from "./cl-insights/dashboard/HeroMetricsCard";
 import StrategicAlertBanner from "./cl-insights/dashboard/StrategicAlertBanner";
 import MarketContextVisualization from "./cl-insights/dashboard/MarketContextVisualization";
 import { LoaderComponent } from "@/components/ui/loader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
 
 interface CLInsightsDashboardProps {
   crmData: any[];
@@ -14,9 +17,13 @@ interface CLInsightsDashboardProps {
 
 const CLInsightsDashboard: React.FC<CLInsightsDashboardProps> = ({ crmData, data }) => {
   const [parsedData, setParsedData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showContent, setShowContent] = useState<boolean>(false);
+  const [prompt, setPrompt] = useState<string>("");
   
   useEffect(() => {
+    if (!showContent) return;
+    
     try {
       // Handle the data whether it's a string or already an object
       const parsed = typeof data === 'string' ? safeJsonParse(data) : data;
@@ -27,10 +34,67 @@ const CLInsightsDashboard: React.FC<CLInsightsDashboardProps> = ({ crmData, data
       console.error("Error parsing dashboard data:", error);
       setIsLoading(false);
     }
-  }, [data]);
+  }, [data, showContent]);
+  
+  const handlePromptSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prompt.trim()) {
+      toast({
+        title: "Empty Prompt",
+        description: "Please enter a prompt to update the insights",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    // Simulate processing time
+    setTimeout(() => {
+      setShowContent(true);
+      setIsLoading(false);
+      toast({
+        title: "Insights Updated",
+        description: "Your CL insights have been updated based on your prompt",
+        variant: "default"
+      });
+    }, 1500);
+  };
   
   // Extract the report data using the correct structure
   const report = parsedData?.["Portfolio-Level_GTM_Intelligence_Insights"];
+  
+  if (!showContent) {
+    return (
+      <div className="w-full">
+        <div className="flex flex-col space-y-6">
+          <div className="flex justify-between items-center mb-2">
+            <h1 className="text-2xl font-bold">Company Level Aura Insights</h1>
+          </div>
+          
+          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-6 rounded-xl shadow-sm mb-6">
+            <h2 className="text-xl font-semibold mb-4 text-indigo-800">Enter Your Prompt</h2>
+            <form onSubmit={handlePromptSubmit} className="space-y-4">
+              <div className="flex flex-col space-y-2">
+                <label htmlFor="prompt" className="text-sm font-medium">
+                  What insights would you like to see?
+                </label>
+                <Input
+                  id="prompt"
+                  placeholder="e.g., Show me sales performance for this quarter..."
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <Button type="submit" disabled={isLoading} className="w-full">
+                {isLoading ? "Generating Insights..." : "Generate Insights"}
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   if (isLoading) {
     return (
@@ -50,6 +114,9 @@ const CLInsightsDashboard: React.FC<CLInsightsDashboardProps> = ({ crmData, data
         <pre className="bg-gray-100 p-3 rounded mt-4 text-xs max-w-md overflow-auto">
           {JSON.stringify(parsedData, null, 2).substring(0, 300) + '...'}
         </pre>
+        <Button className="mt-4" onClick={() => setShowContent(false)}>
+          Try Another Prompt
+        </Button>
       </div>
     );
   }
@@ -128,6 +195,13 @@ const CLInsightsDashboard: React.FC<CLInsightsDashboardProps> = ({ crmData, data
       <div className="flex flex-col space-y-6">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-2xl font-bold">Company Level Aura Insights</h1>
+          <Button onClick={() => setShowContent(false)} variant="outline">New Prompt</Button>
+        </div>
+        
+        {/* Display the current prompt */}
+        <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+          <p className="font-medium text-blue-700">Current Prompt:</p>
+          <p className="text-gray-700 italic">"{prompt}"</p>
         </div>
         
         {/* Chapter 1: Executive Command Center */}
