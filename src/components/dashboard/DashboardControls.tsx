@@ -56,7 +56,7 @@ const DashboardControls: React.FC<DashboardControlsProps> = ({
               ? "bg-green-600 text-white hover:bg-green-700"
               : "bg-gray-200 text-black hover:bg-gray-300"
           }
-          onClick={() => setDeveloperMode(prev => !prev)}
+          onClick={() => setDeveloperMode(!developerMode)}
         >
           Developer Mode
         </Button>
