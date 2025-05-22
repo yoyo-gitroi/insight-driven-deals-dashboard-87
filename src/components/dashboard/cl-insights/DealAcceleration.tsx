@@ -1,118 +1,145 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertCircle, ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Zap, AlertTriangle } from "lucide-react";
-
-interface Opportunity {
-  opportunity: string;
-  impact: string;
-  next_steps: string;
-}
-
-interface RiskFactor {
-  risk_type: string;
-  early_warning_signs: string;
-  mitigation_playbooks: string;
-}
+import { SECTION_COLORS } from "../objections/objectionConstants";
 
 interface DealAccelerationProps {
   dealAcceleration: {
-    "Top 4 Acceleration Opportunities": Opportunity[];
-    "Top 4 Risk Factors": RiskFactor[];
-    "Prioritization Framework": string;
+    "Acceleration Opportunities"?: string[] | any[];
+    "Risk Factors"?: {
+      risk_type?: string;
+      early_warning_signs?: string;
+      mitigation_playbooks?: string;
+    }[] | any[];
+    "Prioritization Framework"?: string;
   };
 }
 
 const DealAcceleration: React.FC<DealAccelerationProps> = ({ dealAcceleration }) => {
-  // Helper function to determine badge color based on impact level
-  const getImpactBadgeColor = (impact: string) => {
-    switch(impact.toLowerCase()) {
-      case "high": return "bg-green-100 text-green-800 hover:bg-green-200";
-      case "medium": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200";
-      case "low": return "bg-blue-100 text-blue-800 hover:bg-blue-200";
-      default: return "bg-gray-100 text-gray-800 hover:bg-gray-200";
-    }
-  };
+  // Handle different data formats and provide fallbacks
+  const accelerationOpportunities = dealAcceleration["Acceleration Opportunities"] || [];
+  const accelerationOppsArray = Array.isArray(accelerationOpportunities) 
+    ? accelerationOpportunities 
+    : [];
+  
+  const riskFactors = dealAcceleration["Risk Factors"] || [];
+  const riskFactorsArray = Array.isArray(riskFactors) 
+    ? riskFactors 
+    : [];
+  
+  // Check if risk factors have the structured format or are simple strings
+  const hasStructuredRisks = riskFactorsArray.length > 0 && 
+    typeof riskFactorsArray[0] === 'object' && 
+    riskFactorsArray[0] !== null;
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="bg-blue-50 border-b border-blue-100">
-          <div className="flex items-center justify-between">
+      {/* Acceleration Opportunities Card */}
+      <Card className="border-l-4" style={{ borderLeftColor: SECTION_COLORS.acceleration }}>
+        <CardHeader className="bg-green-50 border-b border-green-100">
+          <div className="flex justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-blue-600" />
+                <ArrowUpRight className="h-5 w-5 text-green-600" />
                 Deal Acceleration Opportunities
               </CardTitle>
-              <CardDescription>Key strategies to speed up deal cycles</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <Table>
-            <TableHeader className="bg-gray-50">
-              <TableRow>
-                <TableHead>Opportunity</TableHead>
-                <TableHead>Impact</TableHead>
-                <TableHead>Next Steps</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {dealAcceleration["Top 4 Acceleration Opportunities"].map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{item.opportunity}</TableCell>
-                  <TableCell>
-                    <Badge className={getImpactBadgeColor(item.impact)}>
-                      {item.impact}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{item.next_steps}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="bg-red-50 border-b border-red-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-                Risk Factors
-              </CardTitle>
-              <CardDescription>Potential obstacles to deal success</CardDescription>
+              <CardDescription>Actions to speed up deal progression</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="space-y-4">
-            {dealAcceleration["Top 4 Risk Factors"].map((risk, index) => (
-              <div key={index} className="border border-red-100 rounded-lg overflow-hidden">
-                <div className="bg-red-50 px-4 py-2 border-b border-red-100">
-                  <h3 className="font-medium text-red-800">{risk.risk_type}</h3>
-                </div>
-                <div className="p-4 space-y-3">
-                  <div>
-                    <div className="text-sm font-medium text-gray-700 mb-1">Early Warning Signs</div>
-                    <p className="text-sm text-gray-600">{risk.early_warning_signs}</p>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-gray-700 mb-1">Mitigation Playbook</div>
-                    <p className="text-sm text-gray-600">{risk.mitigation_playbooks}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+            {accelerationOppsArray.length > 0 ? (
+              <ol className="space-y-3">
+                {accelerationOppsArray.map((opportunity, index) => {
+                  // Check if opportunity is a string or an object
+                  const opportunityText = typeof opportunity === 'string' 
+                    ? opportunity
+                    : opportunity.opportunity 
+                      ? `${opportunity.opportunity} - ${opportunity.impact ? `Impact: ${opportunity.impact}` : ''} ${opportunity.next_steps ? `Next steps: ${opportunity.next_steps}` : ''}`
+                      : JSON.stringify(opportunity);
+                  
+                  return (
+                    <li key={index} className="flex items-start gap-3 bg-green-50 p-3 rounded-lg">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-medium">
+                        {index + 1}
+                      </div>
+                      <p className="text-gray-700">{opportunityText}</p>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <p className="text-gray-500 italic">No specific acceleration opportunities identified</p>
+            )}
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-            <h3 className="font-medium text-blue-800 mb-2">Prioritization Framework</h3>
-            <p className="text-blue-700">{dealAcceleration["Prioritization Framework"]}</p>
+            {dealAcceleration["Prioritization Framework"] && (
+              <div className="mt-6 p-4 border border-green-100 rounded-lg bg-green-50/50">
+                <h3 className="text-md font-medium mb-2">Prioritization Framework</h3>
+                <p className="text-gray-700">{dealAcceleration["Prioritization Framework"]}</p>
+              </div>
+            )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Risk Factors Card */}
+      <Card>
+        <CardHeader className="bg-red-50 border-b border-red-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                Deal Risk Factors
+              </CardTitle>
+              <CardDescription>Critical issues that may slow or endanger deals</CardDescription>
+            </div>
+            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+              Requires Attention
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {hasStructuredRisks ? (
+            <div className="space-y-4">
+              {riskFactorsArray.map((risk, index) => (
+                <div key={index} className="border border-red-100 rounded-lg overflow-hidden">
+                  <div className="bg-red-50 p-3 border-b border-red-100">
+                    <h3 className="font-medium text-red-800">{risk.risk_type}</h3>
+                  </div>
+                  <div className="p-3 space-y-3">
+                    {risk.early_warning_signs && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-600">Early Warning Signs:</h4>
+                        <p className="text-sm text-gray-700">{risk.early_warning_signs}</p>
+                      </div>
+                    )}
+                    
+                    {risk.mitigation_playbooks && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-600">Mitigation Strategy:</h4>
+                        <p className="text-sm text-gray-700">{risk.mitigation_playbooks}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {riskFactorsArray.map((risk, index) => (
+                <div key={index} className="bg-red-50/50 p-3 rounded-lg border-l-2 border-red-400">
+                  <p className="text-gray-700">{typeof risk === 'string' ? risk : JSON.stringify(risk)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {riskFactorsArray.length === 0 && (
+            <p className="text-gray-500 italic">No specific risk factors identified</p>
+          )}
         </CardContent>
       </Card>
     </div>
