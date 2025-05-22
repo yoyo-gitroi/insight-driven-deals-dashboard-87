@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -6,6 +7,7 @@ import CLInsightsDashboard from "@/components/dashboard/CLInsightsDashboard";
 import DataLoader from "@/components/dashboard/DataLoader";
 import DashboardControls from "@/components/dashboard/DashboardControls";
 import { processRawData, extractUniqueAEs, type CRMData } from "@/utils/dataProcessor";
+import Navigation from "@/components/Navigation";
 
 const Dashboard = () => {
   const location = useLocation();
@@ -59,45 +61,52 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between"> 
-         <h1 className="text-3xl font-bold mb-6">Aura AI-Powered GTM Platform</h1>  
-         <div className="flex space-x-4">
-           {fileUploaded && (
-             <DashboardControls 
-               dashboardView={dashboardView}
-               setDashboardView={setDashboardView}
-               viewMode={viewMode}
-               setViewMode={setViewMode}
-               developerMode={developerMode}
-               setDeveloperMode={setDeveloperMode}
-             />
-           )}
-         </div>
-      </div>
-      
-      {!fileUploaded ? (
-        <DataLoader 
-          onDataLoaded={handleFileProcessed}
-          isLoading={isLoading}
-          setIsLoading={setIsLoading}
-        />
-      ) : (
-        <>
-          {dashboardView === "AE" ? (
-            <AEDashboard 
-              crmData={crmData}
-              aeList={aeList}
-              selectedAE={selectedAE}
-              setSelectedAE={setSelectedAE}
-              developerMode={developerMode}
-              viewMode={viewMode}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <Navigation />
+      <div className="container mx-auto p-4 sm:p-6 flex-1">
+        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"> 
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
+            Aura AI-Powered GTM Platform
+          </h1>  
+          <div className="w-full sm:w-auto">
+            {fileUploaded && (
+              <DashboardControls 
+                dashboardView={dashboardView}
+                setDashboardView={setDashboardView}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                developerMode={developerMode}
+                setDeveloperMode={setDeveloperMode}
+              />
+            )}
+          </div>
+        </div>
+        
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-6">
+          {!fileUploaded ? (
+            <DataLoader 
+              onDataLoaded={handleFileProcessed}
+              isLoading={isLoading}
+              setIsLoading={setIsLoading}
             />
           ) : (
-            <CLInsightsDashboard crmData={crmData} data={data} />
+            <>
+              {dashboardView === "AE" ? (
+                <AEDashboard 
+                  crmData={crmData}
+                  aeList={aeList}
+                  selectedAE={selectedAE}
+                  setSelectedAE={setSelectedAE}
+                  developerMode={developerMode}
+                  viewMode={viewMode}
+                />
+              ) : (
+                <CLInsightsDashboard crmData={crmData} data={data} />
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 };

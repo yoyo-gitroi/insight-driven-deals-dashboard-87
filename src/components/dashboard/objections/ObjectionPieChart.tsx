@@ -9,7 +9,7 @@ import {
   ChartTooltip, 
   ChartTooltipContent 
 } from "@/components/ui/chart";
-import { PieChart, Pie, Cell } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 interface ObjectionPieChartProps {
   title: string;
@@ -31,37 +31,48 @@ const ObjectionPieChart: React.FC<ObjectionPieChartProps> = ({
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="shadow-md hover:shadow-lg transition-shadow border-t-2 border-t-primary/20">
+      <CardHeader className="bg-muted/40 pb-4">
+        <CardTitle className="flex items-center gap-2 text-primary/90">
           <ChartPie className="h-5 w-5" />
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="h-96">
+      <CardContent className="h-96 pt-6">
         {data.length > 0 ? (
-          <ChartContainer config={chartConfig}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={150}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-                ))}
-              </Pie>
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent className="mt-6" />} />
-            </PieChart>
-          </ChartContainer>
+          <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer config={chartConfig}>
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={150}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {data.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={colors[index % colors.length]} 
+                      stroke="#fff"
+                      strokeWidth={1}
+                    />
+                  ))}
+                </Pie>
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
+                  wrapperClassName="bg-background/95 border shadow-lg rounded-md p-2" 
+                />
+                <ChartLegend content={<ChartLegendContent className="mt-6" />} />
+              </PieChart>
+            </ChartContainer>
+          </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex flex-col items-center justify-center h-full">
+            <ChartPie className="h-12 w-12 text-muted-foreground/30 mb-3" />
             <p className="text-muted-foreground">No objection data available</p>
           </div>
         )}

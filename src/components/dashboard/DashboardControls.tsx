@@ -21,46 +21,52 @@ const DashboardControls: React.FC<DashboardControlsProps> = ({
 }) => {
   return (
     <div className="flex flex-wrap gap-3">
-      <div className="flex space-x-1 bg-gray-200 p-1 rounded-md">
+      <div className="bg-muted rounded-lg p-1">
         <Button
           onClick={() => setDashboardView("AE")}
-          className={`text-sm ${dashboardView === "AE" ? "bg-blue-600 text-white" : "bg-transparent text-black"}`}
+          variant={dashboardView === "AE" ? "default" : "ghost"}
+          size="sm"
+          className="text-sm"
         >
-          AE
+          AE Dashboard
         </Button>
         <Button
           onClick={() => setDashboardView("CL_Insight")}
-          className={`text-sm ${dashboardView === "CL_Insight" ? "bg-blue-600 text-white" : "bg-transparent text-black"}`}
+          variant={dashboardView === "CL_Insight" ? "default" : "ghost"}
+          size="sm"
+          className="text-sm"
         >
-          CL_Insight
+          CL Insights
         </Button>
       </div>
-      <div className="flex space-x-1 bg-gray-200 p-1 rounded-md">
+      
+      <div className="bg-muted rounded-lg p-1">
         <Button
-          className={`text-sm ${viewMode === "cards" ? "bg-blue-600 text-white" : "bg-transparent text-black"}`}
           onClick={() => setViewMode("cards")}
+          variant={viewMode === "cards" ? "default" : "ghost"}
+          size="sm"
+          className="text-sm"
         >
           Card View
         </Button>
         <Button
-          className={`text-sm ${viewMode === "table" ? "bg-blue-600 text-white" : "bg-transparent text-black"}`}
           onClick={() => setViewMode("table")}
+          variant={viewMode === "table" ? "default" : "ghost"}
+          size="sm"
+          className="text-sm"
         >
           Table View
         </Button>
       </div>
-      <div>
-        <Button 
-          className={
-            developerMode
-              ? "bg-green-600 text-white hover:bg-green-700"
-              : "bg-gray-200 text-black hover:bg-gray-300"
-          }
-          onClick={() => setDeveloperMode(!developerMode)}
-        >
-          Developer Mode
-        </Button>
-      </div>
+      
+      <Button 
+        variant={developerMode ? "default" : "outline"}
+        size="sm"
+        onClick={() => setDeveloperMode(!developerMode)}
+        className="text-sm"
+      >
+        {developerMode ? "Developer Mode: On" : "Developer Mode: Off"}
+      </Button>
     </div>
   );
 };
