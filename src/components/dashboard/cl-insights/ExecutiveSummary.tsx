@@ -109,17 +109,23 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ executiveSummary })
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="border p-4 rounded-lg bg-blue-50">
                 <h3 className="text-sm font-medium mb-2">Average Win Probability</h3>
-                <p className="text-2xl font-bold text-blue-600">{executiveSummary["Aggregate Health Metrics"]["Average Win Probability"]}</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {executiveSummary["Aggregate Health Metrics"]["Average Win Probability"]}
+                </p>
               </div>
               
               <div className="border p-4 rounded-lg bg-green-50">
                 <h3 className="text-sm font-medium mb-2">Combined ARR Health</h3>
-                <p className="text-sm text-gray-700">{executiveSummary["Aggregate Health Metrics"]["Combined ARR Health"]}</p>
+                <p className="text-sm text-gray-700">
+                  {executiveSummary["Aggregate Health Metrics"]["Combined ARR Health"]}
+                </p>
               </div>
               
               <div className="border p-4 rounded-lg bg-amber-50">
                 <h3 className="text-sm font-medium mb-2">Pipeline Coverage</h3>
-                <p className="text-sm text-gray-700">{executiveSummary["Aggregate Health Metrics"]["Pipeline Coverage vs. Target"]}</p>
+                <p className="text-sm text-gray-700">
+                  {executiveSummary["Aggregate Health Metrics"]["Pipeline Coverage vs. Target"]}
+                </p>
               </div>
             </div>
           </CardContent>
