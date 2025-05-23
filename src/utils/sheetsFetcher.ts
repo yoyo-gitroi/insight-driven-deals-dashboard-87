@@ -43,13 +43,21 @@ export const fetchGoogleSheetsData = async (sheetUrl: string): Promise<any[]> =>
     
     console.log("Fetched sheet data:", jsonData);
     
-    // Map the column names to expected format
-    let clInsights: any = null;
-    if (jsonData && jsonData.length > 0 && typeof jsonData[0] === 'object') {
-      const firstRow = jsonData[0] as Record<string, any>;
-      clInsights = firstRow.cl_insight || null;
+    // Extract cl_insight data
+    let clInsights = null;
+    if (jsonData && jsonData.length > 0) {
+      // Find the first row that has cl_insight data
+      for (const row of jsonData) {
+        if (row.cl_insight) {
+          clInsights = row.cl_insight;
+          break;
+        }
+      }
     }
     
+    console.log("CL Insight data found:", clInsights ? "Yes" : "No");
+    
+    // Map the column names to expected format
     const processedData = jsonData.map((row: any) => {
       return {
         sr_no: row['s.no'],
@@ -66,7 +74,8 @@ export const fetchGoogleSheetsData = async (sheetUrl: string): Promise<any[]> =>
         transcripts: row['transcripts'],
         industry: row['Industry'],
         contact_title: row['Contact Title'],
-        geo: row['Geo']
+        geo: row['Geo'],
+        cl_insight: row['cl_insight']
       };
     });
     
